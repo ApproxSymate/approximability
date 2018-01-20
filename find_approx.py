@@ -103,7 +103,7 @@ with open(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.prec
             tokens = next_line.split()
             if(len(tokens) > 0 and tokens[0] == 'Output'):
                 if(tokens[5] == '0'):
-                    non_approximable_var.append(tokens[3])
+                    non_approximable_var.append(tokens[3] + ' ' + method_name)
                 else:
                     #read and sanitize expression
                     exp = next_line.split(' ', 5)[5].strip("\n")
