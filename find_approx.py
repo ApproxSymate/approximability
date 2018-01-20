@@ -8,7 +8,6 @@ import numpy as np
 with open('config.txt', 'r') as infile:
     result_path = infile.readline().split()[2].strip()
     source_path = infile.readline().split()[2].strip()
-    config_path = infile.readline().split()[2].strip()
     ktest_tool_path = infile.readline().split()[2].strip()
 
 # Find the path longest path with the highest probabilty
