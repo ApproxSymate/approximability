@@ -4,11 +4,12 @@ import subprocess
 import random
 import numpy as np
 
-# Change paths accordingly
-result_path = "/home/himeshi/Projects/workspace/simpleRayTracer/klee-out-0/"
-source_path = "/home/himeshi/Projects/workspace/simpleRayTracer/plane.c"
-config_path = "/home/himeshi/Projects/workspace/simpleRayTracer/config.txt"
-ktest_tool_path = '/home/himeshi/Projects/Approx/klee/klee/Release+Asserts/bin/ktest-tool'
+# Change paths accordingly in config.txt before running
+with open('config.txt', 'r') as infile:
+    result_path = infile.readline().split()[2].strip()
+    source_path = infile.readline().split()[2].strip()
+    config_path = infile.readline().split()[2].strip()
+    ktest_tool_path = infile.readline().split()[2].strip()
 
 # Find the path longest path with the highest probabilty
 # In case there are more than one, just pick one
