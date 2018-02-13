@@ -18,6 +18,8 @@ elif(sys.argv[1] == "--single-path-approximation"):
     approx.approximate_for_single_path(result_path, source_path, ktest_tool_path)
 elif (sys.argv[1] == "--all-path-approximation"):
     approx.approximate_for_all_paths(result_path, source_path, ktest_tool_path)
+elif (sys.argv[1] == "--all-path-approximation-summary"):
+    approx.approximate_for_all_paths_summary(result_path, source_path, ktest_tool_path)
 elif ("--approximate-path-by-probability" in sys.argv[1]):
     approx.approximate_path_by_probability(sys.argv[1], result_path, source_path, ktest_tool_path)
 elif ("--approximate-path-by-pathcount" in sys.argv[1]):
