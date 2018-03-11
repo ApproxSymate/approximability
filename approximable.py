@@ -8,10 +8,9 @@ import sys
 
 
 class Approximable(object):
-    
+
     def get_var_name_from_source(self, var_line, source_path):
         tokens = var_line.split(' ')
-        #print(tokens[0])
         var_name = ""
         fp = open(source_path)
         for i, line in enumerate(fp):
