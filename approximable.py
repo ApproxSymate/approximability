@@ -117,6 +117,7 @@ class Approximable(object):
                             exp = exp.replace("<< ", "*2**")
 
                             is_var_approximable = 0
+                            average_sensitivy = 0.0
 
                             # For each approximable input variable
                             for idx, var in enumerate(approximable_input):
@@ -313,7 +314,7 @@ class Approximable(object):
                     tokens = next_line.split()
 
                     if(tokens[0] == '0'):
-                        non_approximable_var.append(method_name_line_tokens[2] + ' ' + method_name)
+                        non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name))
                         continue
 
                     expression_count += 1
@@ -324,6 +325,8 @@ class Approximable(object):
                     exp = exp.replace("<< ", "*2**")
 
                     is_var_approximable = 0
+                    average_sensitivy = 0.0
+
                     # For each approximable input variable
                     for idx, var in enumerate(approximable_input):
                         # assign other variable errors to zero
@@ -369,35 +372,42 @@ class Approximable(object):
                                 b_1 = SS_xy / SS_xx
 
                                 # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
+                                average_sensitivy += b_1
                                 if(b_1 <= 0.5):
                                     is_var_approximable = 1
 
                     # If for at least one variable in the expression, the output is approximable, then add to approximable list.
                     # Else add to the non-approximable list
                     if(is_var_approximable):
-                        approximable_var.append(method_name_line_tokens[2] + ' ' + method_name)
+                        approximable_var.append(((average_sensitivy / len(approximable_input)), method_name_line_tokens[2] + ' ' + method_name))
                     else:
-                        non_approximable_var.append(method_name_line_tokens[2] + ' ' + method_name)
+                        non_approximable_var.append(((average_sensitivy / len(approximable_input)), method_name_line_tokens[2] + ' ' + method_name))
                 else:
                     continue
 
         # Get the non-approximable input
         non_approximable_input = list(set([x[1] for x in input_variables]) - set(approximable_input))
+
+        #Remove duplicates
         approximable_var = list(set(approximable_var))
         non_approximable_var = list(set(non_approximable_var))
+
+        #Sort by average sensitivity
+        approximable_var.sort(key=lambda tup: tup[0])
+        non_approximable_var.sort(key=lambda tup: tup[0])
 
         # Print out the approximable and non-approximable variables
         print("\nApproximable variables\n================================")
         for var in approximable_input:
             print(var.strip(",") + " (input)")
         for var in approximable_var:
-            print(self.get_var_name_from_source(var, source_path))
+            print(self.get_var_name_from_source(var[1], source_path))
 
         print("\nNon-approximable variables\n================================")
         for var in non_approximable_input:
             print(var.strip(",") + " (input)")
         for var in non_approximable_var:
-            print(self.get_var_name_from_source(var, source_path))
+            print(self.get_var_name_from_source(var[1], source_path))
 
         # Print the approximability of inputs
         print("\nApproximability of input variables\n================================")
