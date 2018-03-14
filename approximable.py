@@ -224,6 +224,7 @@ class Approximable(object):
     def approximate_for_single_path(self, result_path, source_path, input_path, ktest_tool_path):
         print("Source: " + source_path)
         print("Output: " + result_path + "\n")
+
         # Find the path longest path with the highest probabilty
         # In case there are more than one, just pick one
         depth = []
@@ -303,9 +304,9 @@ class Approximable(object):
         for args in range(num_args):
             temp = tokens[idx + 3].strip().replace("'", "")
             if('arr' in temp):
-                exec("%s = []" % temp.split('_')[-1].strip())
+                exec("%s = []" % temp.split('_')[-1].strip(), None, globals())
             else:
-                exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
+                exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())), None, globals())
                 print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
             idx += 9
 
@@ -315,10 +316,10 @@ class Approximable(object):
             for line in input_file:
                 tokens = line.split('=')
                 if('[' in tokens[0] and ']' in tokens[0]):
-                    exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])))
+                    exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
                 else:
-                    exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+                    exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
             input_file.close()
 
@@ -360,7 +361,7 @@ class Approximable(object):
                         # assign other variable errors to zero
                         for temp_var in approximable_input:
                             var_with_err_name = temp_var + "_err"
-                            exec("%s = %f" % (var_with_err_name, 0.0))
+                            exec("%s = %f" % (var_with_err_name, 0.0), None, globals())
 
                         # for repeat
                         result = []
@@ -369,17 +370,17 @@ class Approximable(object):
                             # Generate a random error value in (0,1) for the concerned variable
                             var_with_err_name = var + "_err"
                             input_error = random.uniform(0.0, 1.0)
-                            exec("%s = %f" % (var_with_err_name, input_error))
+                            exec("%s = %f" % (var_with_err_name, input_error), None, globals())
 
                             # Check if path condition with error is satisfied
                             if(path_condition_with_error == ''):
-                                output_error = eval(exp)
+                                output_error = eval(exp, None, globals())
                                 result.append((input_error, output_error))
                                 input_approximability_count[idx] += 1
                             else:
-                                if(eval(path_condition_with_error)):
+                                if(eval(path_condition_with_error, None, globals())):
                                     # If satisfied, get the output error from expression
-                                    output_error = eval(exp)
+                                    output_error = eval(exp, None, globals())
                                     result.append((input_error, output_error))
                                     input_approximability_count[idx] += 1
 
