@@ -1,3 +1,4 @@
-result_path = /home/himeshi/Projects/workspace/simpleRayTracer/klee-out-0/
+result_path = /home/himeshi/Projects/workspace/simpleRayTracer/klee-out-1/
 source_path = /home/himeshi/Projects/workspace/simpleRayTracer/plane.c
 ktest_tool_path = /home/himeshi/Projects/Approx/klee/klee/Release+Asserts/bin/ktest-tool
+input_path =  

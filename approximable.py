@@ -12,16 +12,20 @@ class Approximable(object):
     def get_var_name_from_source(self, var_line, source_path):
         tokens = var_line.split(' ')
         var_name = ""
-        print(var_line)
         fp = open(source_path)
         for i, line in enumerate(fp):
             if((i + 1) == int(tokens[0])):
-                var_name = line.split('=')[0].strip()
-                print(var_name)
-                if(var_name.find(' ')):
-                    var_name = var_name.split(' ')[0]
-                #var_name = re.sub(r'\W+', '', var_name)
-                var_name = var_name.strip(';')
+                if('=' in line):
+                    var_name = line.split('=')[0].strip(';').strip('\t')
+                    if(var_name.strip().find(' ')):
+                        var_name = var_name.split(' ')[-2].strip('(')
+                else:
+                    var_name = line.strip('\t').split(' ')
+                    if(len(var_name) > 1):
+                        var_name = var_name[1].strip('\n').strip(';')
+                    else:
+                        var_name = var_name[0].strip('\n').strip(';')
+
         return var_name + " " + tokens[1]
 
     def approximate_for_all_paths_summary(self, result_path, source_path, ktest_tool_path):

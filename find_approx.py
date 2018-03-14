@@ -12,7 +12,7 @@ with open(config_path, 'r') as infile:
     result_path = infile.readline().split()[2].strip()
     source_path = infile.readline().split()[2].strip()
     ktest_tool_path = infile.readline().split()[2].strip()
-    input_path = infile.readline().split()[2].strip()
+    input_path = infile.readline().split('=')[1].strip()
 
 if(len(sys.argv) < 2):
     print("Usage: python find_approx.py [--single-path-approximation|--all-path-approximation|--approximate-path-by-probability=<N>|--approximate-path-by-pathcount=<N>]")
