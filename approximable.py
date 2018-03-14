@@ -12,13 +12,16 @@ class Approximable(object):
     def get_var_name_from_source(self, var_line, source_path):
         tokens = var_line.split(' ')
         var_name = ""
+        print(var_line)
         fp = open(source_path)
         for i, line in enumerate(fp):
             if((i + 1) == int(tokens[0])):
                 var_name = line.split('=')[0].strip()
+                print(var_name)
                 if(var_name.find(' ')):
                     var_name = var_name.split(' ')[0]
-                var_name = re.sub(r'\W+', '', var_name)
+                #var_name = re.sub(r'\W+', '', var_name)
+                var_name = var_name.strip(';')
         return var_name + " " + tokens[1]
 
     def approximate_for_all_paths_summary(self, result_path, source_path, ktest_tool_path):
@@ -214,7 +217,7 @@ class Approximable(object):
         for idx, var in enumerate(approximable_input):
             print(var + ' : %d%%' % ((input_approximability_count[idx] / (expression_count * input_error_repeat)) * 100))
 
-    def approximate_for_single_path(self, result_path, source_path, ktest_tool_path):
+    def approximate_for_single_path(self, result_path, source_path, input_path, ktest_tool_path):
         print("Source: " + source_path)
         print("Output: " + result_path + "\n")
         # Find the path longest path with the highest probabilty
@@ -252,6 +255,9 @@ class Approximable(object):
         for line in source:
             if re.match("(.*)klee_make_symbolic(.*)", line):
                 tokens = re.split(r'[(|)]|\"', line)
+                if('arr' in tokens[4]):
+                    temp = tokens[4].split('_')
+                    tokens[4] = temp[-1]
                 input_variables.append((tokens[2], tokens[4]))
                 print(tokens[4])
         source.close()
@@ -262,8 +268,9 @@ class Approximable(object):
         for line in source:
             if re.match("(.*)klee_track_error(.*)", line):
                 tokens = re.split(r'[(|)]|\"|&|,', line)
-                approximable_input.append(tokens[2])
-                print(tokens[2])
+                name = tokens[-3].split('_')[0]
+                approximable_input.append(name)
+                print(name)
         source.close()
         # print(approximable_input)
 
@@ -274,13 +281,13 @@ class Approximable(object):
             path_condition_with_error += line.rstrip("\n\r")
             path_condition_with_error += " "
         source.close()
-        path_condition_with_error = path_condition_with_error.replace("!", "not")
-        path_condition_with_error = path_condition_with_error.replace(" = ", " == ")
-        path_condition_with_error = path_condition_with_error.replace("&&", "and")
-        path_condition_with_error = path_condition_with_error.replace(">> 0", "")
-        path_condition_with_error = path_condition_with_error.replace(">> ", "/2**")
-        path_condition_with_error = path_condition_with_error.replace("<< ", "*2**")
-        # print(path_condition_with_error)
+        if(not path_condition_with_error == ' '):
+            path_condition_with_error = path_condition_with_error.replace("!", "not")
+            path_condition_with_error = path_condition_with_error.replace(" = ", " == ")
+            path_condition_with_error = path_condition_with_error.replace("&&", "and")
+            path_condition_with_error = path_condition_with_error.replace(">> 0", "")
+            path_condition_with_error = path_condition_with_error.replace(">> ", "/2**")
+            path_condition_with_error = path_condition_with_error.replace("<< ", "*2**")
 
         # get an input, for which the path condition (without error) is satisfied
         print("\nInput values\n================================")
@@ -290,9 +297,26 @@ class Approximable(object):
         idx = 5
         num_args = int(tokens[idx].strip())
         for args in range(num_args):
-            exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
-            print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
+            temp = tokens[idx + 3].strip().replace("'", "")
+            if('arr' in temp):
+                exec("%s = []" % temp.split('_')[-1].strip())
+            else:
+                exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
+                print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
             idx += 9
+
+        #load pre-defined input in file (used mainly for floating point constants)
+        if(not input_path == ''):
+            input_file = open(input_path, "r")
+            for line in input_file:
+                tokens = line.split('=')
+                if('[' in tokens[0] and ']' in tokens[0]):
+                    exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])))
+                    print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+                else:
+                    exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+                    print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+            input_file.close()
 
         approximable_var = []
         non_approximable_var = []
@@ -344,11 +368,16 @@ class Approximable(object):
                             exec("%s = %f" % (var_with_err_name, input_error))
 
                             # Check if path condition with error is satisfied
-                            if(eval(path_condition_with_error)):
-                                # If satisfied, get the output error from expression
+                            if(path_condition_with_error == ''):
                                 output_error = eval(exp)
                                 result.append((input_error, output_error))
                                 input_approximability_count[idx] += 1
+                            else:
+                                if(eval(path_condition_with_error)):
+                                    # If satisfied, get the output error from expression
+                                    output_error = eval(exp)
+                                    result.append((input_error, output_error))
+                                    input_approximability_count[idx] += 1
 
                         if(len(result)):
                             # Check for monotonicity of output error. If not monotonous continue to evaluate other inputs.
@@ -393,8 +422,8 @@ class Approximable(object):
         non_approximable_var = list(set(non_approximable_var))
 
         #Sort by average sensitivity
-        approximable_var.sort(key=lambda tup: tup[0])
-        non_approximable_var.sort(key=lambda tup: tup[0])
+        approximable_var.sort(key=lambda tup: tup[0], reverse=True)
+        non_approximable_var.sort(key=lambda tup: tup[0], reverse=True)
 
         # Print out the approximable and non-approximable variables
         print("\nApproximable variables\n================================")
