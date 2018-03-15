@@ -230,7 +230,8 @@ class Approximable(object):
         depth = []
         prob = []
         index = []
-        scaling = 1.0
+        exec("scaling = 1.0", None, globals())
+        input_error_repeat = 100
         for root, dirs, files in os.walk(result_path):
             for filename in files:
                 if filename.endswith(".prob"):
@@ -342,10 +343,6 @@ class Approximable(object):
                     next_line = infile.readline()
                     tokens = next_line.split()
 
-                    if(tokens[0] == '0'):
-                        non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name))
-                        continue
-
                     expression_count += 1
                     # read and sanitize expression
                     exp = next_line.strip("\n")
@@ -365,7 +362,6 @@ class Approximable(object):
 
                         # for repeat
                         result = []
-                        input_error_repeat = 100
                         for x in range(input_error_repeat):
                             # Generate a random error value in (0,1) for the concerned variable
                             var_with_err_name = var + "_err"
@@ -374,15 +370,25 @@ class Approximable(object):
 
                             # Check if path condition with error is satisfied
                             if(path_condition_with_error == ''):
-                                output_error = eval(exp, None, globals())
-                                result.append((input_error, output_error))
-                                input_approximability_count[idx] += 1
-                            else:
-                                if(eval(path_condition_with_error, None, globals())):
-                                    # If satisfied, get the output error from expression
+                                if(exp == '0'):
+                                    non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name))
+                                    input_approximability_count[idx] += 1
+                                    continue
+                                else:
                                     output_error = eval(exp, None, globals())
                                     result.append((input_error, output_error))
                                     input_approximability_count[idx] += 1
+                            else:
+                                if(eval(path_condition_with_error, None, globals())):
+                                    # If satisfied, get the output error from expression
+                                    if(exp == '0'):
+                                        non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name))
+                                        input_approximability_count[idx] += 1
+                                        continue
+                                    else:
+                                        output_error = eval(exp, None, globals())
+                                        result.append((input_error, output_error))
+                                        input_approximability_count[idx] += 1
 
                         if(len(result)):
                             # Check for monotonicity of output error. If not monotonous continue to evaluate other inputs.
