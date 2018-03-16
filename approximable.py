@@ -242,6 +242,7 @@ class Approximable(object):
                         depth.append(secondline[0])
                         prob.append(float(secondline[1]))
 
+        #print(prob)
         max_depth = max(depth)
         max_probabilities = []
         max_probabilities_index = []
@@ -284,7 +285,7 @@ class Approximable(object):
         source = open(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_precision_error", "r")
         path_condition_with_error = source.readline().rstrip("\n\r")
         path_condition_without_error = source.readline().rstrip("\n\r")
-        print(path_condition_without_error)
+        #print(path_condition_without_error)
         source.close()
         if(not path_condition_with_error == ' '):
             path_condition_with_error = path_condition_with_error.replace("!", "not")
@@ -300,6 +301,7 @@ class Approximable(object):
             path_condition_without_error = path_condition_without_error.replace(">> 0", "")
             path_condition_without_error = path_condition_without_error.replace(">> ", "/2**")
             path_condition_without_error = path_condition_without_error.replace("<< ", "*2**")
+            #print(path_condition_without_error)
 
         # get an input, for which the path condition (without error) is satisfied
         print("\nInput values\n================================")
@@ -447,8 +449,8 @@ class Approximable(object):
         non_approximable_var = list(set(non_approximable_var))
 
         #Sort by average sensitivity
-        approximable_var.sort(key=lambda tup: tup[0], reverse=True)
-        non_approximable_var.sort(key=lambda tup: tup[0], reverse=True)
+        approximable_var.sort(key=lambda tup: tup[0])
+        non_approximable_var.sort(key=lambda tup: tup[0])
 
         # Print out the approximable and non-approximable variables
         print("\nApproximable variables\n================================")

@@ -8,8 +8,8 @@ approx = approximable.Approximable()
 #config_path = 'config.txt'
 #config_path = '/home/himeshi/Projects/workspace/SORScimark/config.txt'
 #config_path = '/home/himeshi/Projects/workspace/SparseMatMulScimark/config.txt'
-config_path = '/home/himeshi/Projects/workspace/MonteCarloScimark/config.txt'
-#config_path = '/home/himeshi/Projects/workspace/LUScimark/config.txt'
+#config_path = '/home/himeshi/Projects/workspace/MonteCarloScimark/config.txt'
+config_path = '/home/himeshi/Projects/workspace/LUScimark/config.txt'
 
 with open(config_path, 'r') as infile:
     result_path = infile.readline().split()[2].strip()
