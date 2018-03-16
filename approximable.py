@@ -5,7 +5,7 @@ import random
 import numpy as np
 import path
 import sys
-
+import __future__
 
 class Approximable(object):
 
@@ -281,11 +281,10 @@ class Approximable(object):
         # print(approximable_input)
 
         # Get the path condition with error for the selected path
-        path_condition_with_error = ""
         source = open(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_precision_error", "r")
-        for line in source:
-            path_condition_with_error += line.rstrip("\n\r")
-            path_condition_with_error += " "
+        path_condition_with_error = source.readline().rstrip("\n\r")
+        path_condition_without_error = source.readline().rstrip("\n\r")
+        print(path_condition_without_error)
         source.close()
         if(not path_condition_with_error == ' '):
             path_condition_with_error = path_condition_with_error.replace("!", "not")
@@ -294,6 +293,14 @@ class Approximable(object):
             path_condition_with_error = path_condition_with_error.replace(">> 0", "")
             path_condition_with_error = path_condition_with_error.replace(">> ", "/2**")
             path_condition_with_error = path_condition_with_error.replace("<< ", "*2**")
+        if(not path_condition_without_error == ' '):
+            path_condition_without_error = path_condition_without_error.replace("!", "not")
+            path_condition_without_error = path_condition_without_error.replace(" = ", " == ")
+            path_condition_without_error = path_condition_without_error.replace("&&", "and")
+            path_condition_without_error = path_condition_without_error.replace(">> 0", "")
+            path_condition_without_error = path_condition_without_error.replace(">> ", "/2**")
+            path_condition_without_error = path_condition_without_error.replace("<< ", "*2**")
+            print(path_condition_without_error)
 
         # get an input, for which the path condition (without error) is satisfied
         print("\nInput values\n================================")
@@ -307,8 +314,8 @@ class Approximable(object):
             if('arr' in temp):
                 exec("%s = []" % temp.split('_')[-1].strip(), None, globals())
             else:
-                exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())), None, globals())
-                print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
+                exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
+                print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())))
             idx += 9
 
         #load pre-defined input in file (used mainly for floating point constants)
@@ -317,12 +324,19 @@ class Approximable(object):
             for line in input_file:
                 tokens = line.split('=')
                 if('[' in tokens[0] and ']' in tokens[0]):
-                    exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+                    exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
                 else:
                     exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
             input_file.close()
+
+        #Check if path condition without error is satisfied with the input
+        #Cannot check this because python doesn't have integer division as implemented in C!!! argh!!!!!
+        if(eval(path_condition_without_error, None, globals())):
+            print("\nInput values satisfies path condition without error")
+        else:
+            print("\nInput values do not satisfy path condition without error")
 
         approximable_var = []
         non_approximable_var = []
