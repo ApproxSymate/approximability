@@ -300,7 +300,6 @@ class Approximable(object):
             path_condition_without_error = path_condition_without_error.replace(">> 0", "")
             path_condition_without_error = path_condition_without_error.replace(">> ", "/2**")
             path_condition_without_error = path_condition_without_error.replace("<< ", "*2**")
-            print(path_condition_without_error)
 
         # get an input, for which the path condition (without error) is satisfied
         print("\nInput values\n================================")
@@ -333,10 +332,11 @@ class Approximable(object):
 
         #Check if path condition without error is satisfied with the input
         #Cannot check this because python doesn't have integer division as implemented in C!!! argh!!!!!
-        if(eval(path_condition_without_error, None, globals())):
-            print("\nInput values satisfies path condition without error")
-        else:
-            print("\nInput values do not satisfy path condition without error")
+        if(not path_condition_without_error == ""):
+            if(eval(path_condition_without_error, None, globals())):
+                print("\nInput values satisfies path condition without error")
+            else:
+                print("\nInput values do not satisfy path condition without error")
 
         approximable_var = []
         non_approximable_var = []
