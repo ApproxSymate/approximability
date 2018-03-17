@@ -5,11 +5,11 @@ import sys
 approx = approximable.Approximable()
 
 # Change paths accordingly in config.txt before running
-#config_path = 'config.txt'
+config_path = '/home/himeshi/Projects/workspace/simpleRayTracer/config.txt'
 #config_path = '/home/himeshi/Projects/workspace/SORScimark/config.txt'
 #config_path = '/home/himeshi/Projects/workspace/SparseMatMulScimark/config.txt'
 #config_path = '/home/himeshi/Projects/workspace/MonteCarloScimark/config.txt'
-config_path = '/home/himeshi/Projects/workspace/LUScimark/config.txt'
+#config_path = '/home/himeshi/Projects/workspace/LUScimark/config.txt'
 
 with open(config_path, 'r') as infile:
     result_path = infile.readline().split()[2].strip()

@@ -291,11 +291,17 @@ class Approximable(object):
         source.close()
         if(not path_condition_with_error == ' '):
             path_condition_with_error = path_condition_with_error.replace(" = ", " == ")
+            path_condition_with_error = path_condition_with_error.replace(">> 0", "")
+            path_condition_with_error = path_condition_with_error.replace(">> ", ">> (int)")
+            path_condition_with_error = path_condition_with_error.replace("<< ", "<< (int)")
         if(not path_condition_without_error == ' '):
             path_condition_without_error = path_condition_without_error.replace(" = ", " == ")
+            path_condition_without_error = path_condition_without_error.replace(">> 0", "")
+            path_condition_without_error = path_condition_without_error.replace(">> ", ">> (int)")
+            path_condition_without_error = path_condition_without_error.replace("<< ", "<< (int)")
 
         #build C function to check satisfiability of path conditions with and without error
-        pc_without_error_func = "int without_error() {"
+        pc_without_error_func = "int without_error() {\n float scaling = 1.0;"
         for var in input_variables:
             if(var[2] == 0):
                 pc_without_error_func += "int " + var[1] + ";"
@@ -316,7 +322,7 @@ class Approximable(object):
             else:
                 exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
                 print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
-                pc_without_error_func += tokens[idx + 3].strip().replace("'", "") + " = " + int(tokens[idx + 9].strip()) + ";"
+                pc_without_error_func += tokens[idx + 3].strip().replace("'", "") + " = " + str(tokens[idx + 9].strip()) + ";"
             idx += 9
 
         #load pre-defined input in file (used mainly for floating point constants)
@@ -336,15 +342,17 @@ class Approximable(object):
 
         pc_with_error_func = pc_without_error_func
         pc_without_error_func += "\nint answer = " + path_condition_without_error + ";\nreturn answer;}"
-        func_without_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), """""" + pc_without_error_func)
 
         #Check if path condition without error is satisfied with the input
         #Cannot check this because python doesn't have integer division as implemented in C!!! argh!!!!!
         if(not path_condition_without_error == ""):
+            func_without_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), pc_without_error_func)
             if(func_without_error()):
                 print("\nInput values satisfies path condition without error...")
             else:
                 print("\nInput values do not satisfy path condition without error...")
+        else:
+            print("\nInput values satisfies path condition without error...")
 
         approximable_var = []
         non_approximable_var = []
@@ -353,6 +361,9 @@ class Approximable(object):
         input_approximability_count = []
         for var in approximable_input:
             input_approximability_count.append(0)
+
+        for temp_var in approximable_input:
+            pc_with_error_func += "float " + temp_var + "_err" + " = " + str(0.0) + ";"
 
         # Read expression
         expression_count = 0
@@ -390,8 +401,8 @@ class Approximable(object):
                             var_with_err_name = var + "_err"
                             input_error = random.uniform(0.0, 1.0)
                             exec("%s = %f" % (var_with_err_name, input_error), None, globals())
-                            function_string = pc_with_error_func + "float " + var_with_err_name + " = " + str(input_error) + ";"
-                            function_string += "\nint answer = " + path_condition_with_error + ";\nreturn answer;}"
+                            error_added_string = var_with_err_name + " = " + str(input_error) + ";"
+                            function_string = pc_with_error_func + error_added_string + "\nint answer = " + path_condition_with_error + ";\nreturn answer;}"
 
                             # Check if path condition with error is satisfied
                             if(path_condition_with_error == ''):
@@ -404,8 +415,8 @@ class Approximable(object):
                                     result.append((input_error, output_error))
                                     input_approximability_count[idx] += 1
                             else:
-                                func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), """""" + pc_without_error_func)
-                                if(func_with_error()):
+                                func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int), function_string)
+                                if(func_with_error(1)):
                                     # If satisfied, get the output error from expression
                                     path_with_error_satisfied = 1
                                     if(exp == '0'):
@@ -414,6 +425,7 @@ class Approximable(object):
                                         continue
                                     else:
                                         output_error = eval(exp, None, globals())
+                                        output_error = 0
                                         result.append((input_error, output_error))
                                         input_approximability_count[idx] += 1
 
@@ -464,13 +476,13 @@ class Approximable(object):
         non_approximable_var.sort(key=lambda tup: tup[0])
 
         # Print out the approximable and non-approximable variables
-        print("\nApproximable variables\n================================")
+        print("\nApproximable variables(in increasing order of sensitivity)\n================================")
         for var in approximable_input:
             print(var.strip(",") + " (input)")
         for var in approximable_var:
             print(self.get_var_name_from_source(var[1], source_path))
 
-        print("\nNon-approximable variables\n================================")
+        print("\nNon-approximable variables(in increasing order of sensitivity)\n================================")
         for var in non_approximable_input:
             print(var.strip(",") + " (input)")
         for var in non_approximable_var:
