@@ -320,8 +320,8 @@ class Approximable(object):
             if('arr' in temp):
                 exec("%s = []" % temp.split('_')[-1].strip(), None, globals())
             else:
-                exec("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
-                print("%s = %d" % (tokens[idx + 3].strip().replace("'", ""), int(tokens[idx + 9].strip())))
+                exec("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
+                print("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())))
                 pc_without_error_func += tokens[idx + 3].strip().replace("'", "") + " = " + str(tokens[idx + 9].strip()) + ";"
             idx += 9
 
@@ -332,11 +332,11 @@ class Approximable(object):
                 tokens = line.split('=')
                 if('[' in tokens[0] and ']' in tokens[0]):
                     exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
-                    print("%s = %d" % (tokens[0].strip(), int(tokens[1].strip())))
+                    print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
                     pc_without_error_func += tokens[0].strip() + " = " + tokens[1].strip() + ";"
                 else:
                     exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())), None, globals())
-                    print("%s = %d" % (tokens[0].strip(), int(tokens[1].strip())))
+                    print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
                     pc_without_error_func += tokens[0].strip() + " = " + tokens[1].strip() + ";"
             input_file.close()
 
@@ -406,6 +406,7 @@ class Approximable(object):
 
                             # Check if path condition with error is satisfied
                             if(path_condition_with_error == ''):
+                                path_with_error_satisfied = 1
                                 if(exp == '0'):
                                     non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name, 1))
                                     input_approximability_count[idx] += 1
@@ -425,7 +426,6 @@ class Approximable(object):
                                         continue
                                     else:
                                         output_error = eval(exp, None, globals())
-                                        output_error = 0
                                         result.append((input_error, output_error))
                                         input_approximability_count[idx] += 1
 
@@ -452,7 +452,7 @@ class Approximable(object):
 
                                 # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
                                 average_sensitivy += b_1
-                                if(b_1 <= 0.5):
+                                if(b_1 <= 1):
                                     is_var_approximable = 1
 
                     # If for at least one variable in the expression, the output is approximable, then add to approximable list.
@@ -467,29 +467,34 @@ class Approximable(object):
         # Get the non-approximable input
         non_approximable_input = list(set([x[1] for x in input_variables]) - set(approximable_input))
 
-        #Remove duplicates
-        approximable_var = list(set(approximable_var))
-        non_approximable_var = list(set(non_approximable_var))
-
         #Sort by average sensitivity
         approximable_var.sort(key=lambda tup: tup[0])
         non_approximable_var.sort(key=lambda tup: tup[0])
+        approximable_output_strings = []
+        non_approximable_output_strings = []
+        for var in approximable_var:
+            approximable_output_strings.append(self.get_var_name_from_source(var[1], source_path))
+        for var in non_approximable_var:
+            if(var[2]):
+                non_approximable_output_strings.append(self.get_var_name_from_source(var[1], source_path))
+            else:
+                non_approximable_output_strings.append(self.get_var_name_from_source(var[1], source_path) + " (Error path not satisifed)")
+        #Remove duplicates
+        approximable_output_strings = list(set(approximable_output_strings))
+        non_approximable_output_strings = list(set(non_approximable_output_strings))
 
         # Print out the approximable and non-approximable variables
         print("\nApproximable variables(in increasing order of sensitivity)\n================================")
         for var in approximable_input:
             print(var.strip(",") + " (input)")
-        for var in approximable_var:
-            print(self.get_var_name_from_source(var[1], source_path))
+        for var in approximable_output_strings:
+            print(var)
 
         print("\nNon-approximable variables(in increasing order of sensitivity)\n================================")
         for var in non_approximable_input:
             print(var.strip(",") + " (input)")
-        for var in non_approximable_var:
-            if(var[2]):
-                print(self.get_var_name_from_source(var[1], source_path))
-            else:
-                print(self.get_var_name_from_source(var[1], source_path) + " (Error path not satisifed)")
+        for var in non_approximable_output_strings:
+            print(var)
 
         # Print the approximability of inputs
         print("\nApproximability of input variables\n================================")
