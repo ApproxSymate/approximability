@@ -16,16 +16,21 @@ class Approximable(object):
         fp = open(source_path)
         for i, line in enumerate(fp):
             if((i + 1) == int(tokens[0])):
+                #print(var_line)
+                #print(line)
                 if('=' in line):
                     var_name = line.split('=')[0].strip(';').strip('\t')
                     if(var_name.strip().find(' ')):
                         var_name = var_name.split(' ')[-2].strip('(')
+                elif('klee_bound_error' in line):
+                    var_name = line.split(',')[1].lstrip().replace('"','')
                 else:
                     var_name = line.strip('\t').split(' ')
                     if(len(var_name) > 1):
                         var_name = var_name[1].strip('\n').strip(';')
                     else:
                         var_name = var_name[0].strip('\n').strip(';')
+        #print(var_name + " " + tokens[1])
 
         return var_name + " " + tokens[1]
 
@@ -172,7 +177,7 @@ class Approximable(object):
                                         b_1 = SS_xy / SS_xx
 
                                         # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
-                                        if(b_1 <= 0.5):
+                                        if(b_1 <= 1):
                                             is_var_approximable = 1
 
                             # If for at least one variable in the expression, the output is approximable, then add to approximable list.
@@ -253,6 +258,8 @@ class Approximable(object):
                 max_probabilities_index.append(index[idx])
 
         selected_path_id = max_probabilities_index[max_probabilities.index(max(max_probabilities))]
+        #selected_path_id = '23' - floodfill
+        #selected_path_id = '11' - raytracer
         print("Selected path #:" + selected_path_id + "\n")
 
         # Get the input variables and their types and mark those for which error is tracked
@@ -342,7 +349,6 @@ class Approximable(object):
 
         pc_with_error_func = pc_without_error_func
         pc_without_error_func += "\nint answer = " + path_condition_without_error + ";\nreturn answer;}"
-
         #Check if path condition without error is satisfied with the input
         #Cannot check this because python doesn't have integer division as implemented in C!!! argh!!!!!
         if(not path_condition_without_error == ""):
@@ -371,17 +377,17 @@ class Approximable(object):
             for line in infile:
                 method_name_line_tokens = line.split()
                 if(len(method_name_line_tokens) > 0 and method_name_line_tokens[1] == 'Line'):
+
                     method_name = method_name_line_tokens[5].rstrip(',')
 
                     next_line = infile.readline()
+
                     tokens = next_line.split()
 
                     expression_count += 1
                     # read and sanitize expression
                     exp = next_line.strip("\n")
                     exp = exp.replace(">> 0", "")
-                    exp = exp.replace(">> ", "/2**")
-                    exp = exp.replace("<< ", "*2**")
 
                     is_var_approximable = 0
                     average_sensitivy = 0.0
@@ -412,9 +418,12 @@ class Approximable(object):
                                     input_approximability_count[idx] += 1
                                     continue
                                 else:
-                                    output_error = eval(exp, None, globals())
-                                    result.append((input_error, output_error))
-                                    input_approximability_count[idx] += 1
+                                    try:
+                                        output_error = eval(exp, None, globals())
+                                        result.append((input_error, output_error))
+                                        input_approximability_count[idx] += 1
+                                    except:
+                                        continue;
                             else:
                                 func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int), function_string)
                                 if(func_with_error(1)):
@@ -425,9 +434,12 @@ class Approximable(object):
                                         input_approximability_count[idx] += 1
                                         continue
                                     else:
-                                        output_error = eval(exp, None, globals())
-                                        result.append((input_error, output_error))
-                                        input_approximability_count[idx] += 1
+                                        try:
+                                            output_error = eval(exp, None, globals())
+                                            result.append((input_error, output_error))
+                                            input_approximability_count[idx] += 1
+                                        except:
+                                            continue;
 
                         if(len(result)):
                             # Check for monotonicity of output error. If not monotonous continue to evaluate other inputs.
@@ -452,7 +464,8 @@ class Approximable(object):
 
                                 # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
                                 average_sensitivy += b_1
-                                if(b_1 <= 1):
+                                # The test value is 1.1 instead of 1 because sometimes floats are slightly greater than 1 (example 1.0000000770289357)
+                                if(b_1 <= 1.1):
                                     is_var_approximable = 1
 
                     # If for at least one variable in the expression, the output is approximable, then add to approximable list.
