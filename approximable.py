@@ -237,7 +237,7 @@ class Approximable(object):
         prob = []
         index = []
         exec("scaling = 1.0", None, globals())
-        input_error_repeat = 100
+        input_error_repeat = 10
         for root, dirs, files in os.walk(result_path):
             for filename in files:
                 if filename.endswith(".prob"):
@@ -414,14 +414,13 @@ class Approximable(object):
                             if(path_condition_with_error == ''):
                                 path_with_error_satisfied = 1
                                 if(exp == '0'):
-                                    non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name, 1))
-                                    input_approximability_count[idx] += 1
-                                    continue
+                                    input_approximability_count[idx] += input_error_repeat
+                                    break
                                 else:
+                                    input_approximability_count[idx] += 1
                                     try:
                                         output_error = eval(exp, None, globals())
                                         result.append((input_error, output_error))
-                                        input_approximability_count[idx] += 1
                                     except:
                                         continue;
                             else:
@@ -429,15 +428,13 @@ class Approximable(object):
                                 if(func_with_error(1)):
                                     # If satisfied, get the output error from expression
                                     path_with_error_satisfied = 1
+                                    input_approximability_count[idx] += 1
                                     if(exp == '0'):
-                                        non_approximable_var.append((0.0, method_name_line_tokens[2] + ' ' + method_name, path_with_error_satisfied))
-                                        input_approximability_count[idx] += 1
-                                        continue
+                                        break
                                     else:
                                         try:
                                             output_error = eval(exp, None, globals())
                                             result.append((input_error, output_error))
-                                            input_approximability_count[idx] += 1
                                         except:
                                             continue;
 
@@ -481,8 +478,13 @@ class Approximable(object):
         non_approximable_input = list(set([x[1] for x in input_variables]) - set(approximable_input))
 
         #Sort by average sensitivity
-        approximable_var.sort(key=lambda tup: tup[0])
-        non_approximable_var.sort(key=lambda tup: tup[0])
+        approximable_var.sort(key=lambda tup: tup[0], reverse=True)
+        non_approximable_var.sort(key=lambda tup: tup[0], reverse=True)
+        #for item in approximable_var:
+            #print(item[0])
+            #print(self.get_var_name_from_source(item[1], source_path) + "\n")
+        #print(non_approximable_var)
+
         approximable_output_strings = []
         non_approximable_output_strings = []
         for var in approximable_var:
