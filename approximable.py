@@ -301,12 +301,15 @@ class Approximable(object):
             path_condition_with_error = path_condition_with_error.replace(">> 0", "")
             path_condition_with_error = path_condition_with_error.replace(">> ", ">> (int)")
             path_condition_with_error = path_condition_with_error.replace("<< ", "<< (int)")
+            path_condition_with_error = path_condition_with_error.replace("true", "1");
+            path_condition_with_error = path_condition_with_error.replace("false", "0");
         if(not path_condition_without_error == ' '):
             path_condition_without_error = path_condition_without_error.replace(" = ", " == ")
             path_condition_without_error = path_condition_without_error.replace(">> 0", "")
             path_condition_without_error = path_condition_without_error.replace(">> ", ">> (int)")
             path_condition_without_error = path_condition_without_error.replace("<< ", "<< (int)")
-
+            path_condition_without_error = path_condition_without_error.replace("true", "1");
+            path_condition_without_error = path_condition_without_error.replace("false", "0");
         #build C function to check satisfiability of path conditions with and without error
         pc_without_error_func = "int without_error() {\n float scaling = 1.0;"
         for var in input_variables:
