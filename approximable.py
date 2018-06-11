@@ -338,8 +338,13 @@ class Approximable(object):
         #load pre-defined input in file (used mainly for floating point constants)
         if(not input_path == ''):
             input_file = open(input_path, "r")
+            defined_variables = []
             for line in input_file:
                 tokens = line.split('=')
+                variable_name = tokens[0].split('[')[0].strip()
+                if not variable_name in defined_variables:
+                    exec("%s = []" % (variable_name), None, globals())
+                    defined_variables.append(variable_name)
                 if('[' in tokens[0] and ']' in tokens[0]):
                     exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
