@@ -312,12 +312,14 @@ class Approximable(object):
             path_condition_without_error = path_condition_without_error.replace("false", "0");
         #build C function to check satisfiability of path conditions with and without error
         pc_without_error_func = "int without_error() {\n float scaling = 1.0;"
+        pc_without_error_func_declarations = dict()
         for var in input_variables:
             if(var[2] == 0):
-                pc_without_error_func += "int " + var[1] + ";"
+                pc_without_error_func_declarations[var[1]] = 0
             else:
-                pc_without_error_func += "int " + var[1] + "[" + var[3] + "];"
+                pc_without_error_func_declarations[var[1]] = int(var[3])
 
+        pc_without_error_func_definitions = ""
         # get an input, for which the path condition (without error) is satisfied
         print("\nInput values\n================================")
         result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.ktest'], stdout=subprocess.PIPE)
@@ -332,24 +334,54 @@ class Approximable(object):
             else:
                 exec("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
                 print("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())))
-                pc_without_error_func += tokens[idx + 3].strip().replace("'", "") + " = " + str(tokens[idx + 9].strip()) + ";"
+                pc_without_error_func_definitions += tokens[idx + 3].strip().replace("'", "") + " = " + str(tokens[idx + 9].strip()) + ";"
             idx += 9
 
         #load pre-defined input in file (used mainly for floating point constants)
+        largest_index = dict()
         if(not input_path == ''):
             input_file = open(input_path, "r")
+            defined_variables = []
+            c_defined_variables = []
             for line in input_file:
                 tokens = line.split('=')
+                variable_name = tokens[0].split('[')[0].strip()
+                if not variable_name in defined_variables:
+                    exec("%s = []" % (variable_name), None, globals())
+                    defined_variables.append(variable_name)
                 if('[' in tokens[0] and ']' in tokens[0]):
                     exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
-                    pc_without_error_func += tokens[0].strip() + " = " + tokens[1].strip() + ";"
+                    pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
+                    largest_index[variable_name] = int(tokens[0].split('[')[1].split(']')[0].strip())
                 else:
+                    variable_name = tokens[0].strip()
                     exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())), None, globals())
                     print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
-                    pc_without_error_func += tokens[0].strip() + " = " + tokens[1].strip() + ";"
+                    if variable_name in c_defined_variables:
+                        pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
+                    else:
+                        if not variable_name in pc_without_error_func_declarations:
+                            pc_without_error_func_definitions += "float "
+                        pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
+                        c_defined_variables.append(variable_name)
             input_file.close()
 
+        for variable_name, num_elements in pc_without_error_func_declarations.items():
+            if variable_name in largest_index:
+                if num_elements < largest_index[variable_name]:
+                    pc_without_error_func += "int " + variable_name + "[" + str(largest_index[variable_name] + 1) + "];\n"
+                elif num_elements > 0:
+                    pc_without_error_func += "int " + variable_name + "[" + str(num_elements) + "];\n"
+                else:
+                    pc_without_error_func += "int " + variable_name + ";\n"
+            elif num_elements > 0:
+                pc_without_error_func += "int " + variable_name + "[" + str(num_elements) + "];\n"
+            else:
+                pc_without_error_func += "int " + variable_name + ";\n"
+
+        pc_without_error_func += pc_without_error_func_definitions
+        
         pc_with_error_func = pc_without_error_func
         pc_without_error_func += "\nint answer = " + path_condition_without_error + ";\nreturn answer;}"
         #Check if path condition without error is satisfied with the input
@@ -380,7 +412,6 @@ class Approximable(object):
             for line in infile:
                 method_name_line_tokens = line.split()
                 if(len(method_name_line_tokens) > 0 and method_name_line_tokens[1] == 'Line'):
-
                     method_name = method_name_line_tokens[5].rstrip(',')
 
                     next_line = infile.readline()
@@ -427,8 +458,8 @@ class Approximable(object):
                                     except:
                                         continue;
                             else:
-                                func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int), function_string)
-                                if(func_with_error(1)):
+                                func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), function_string)
+                                if(func_with_error()):
                                     # If satisfied, get the output error from expression
                                     path_with_error_satisfied = 1
                                     input_approximability_count[idx] += 1
