@@ -361,7 +361,9 @@ class Approximable(object):
                     if variable_name in c_defined_variables:
                         pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
                     else:
-                        pc_without_error_func_definitions += "int " + tokens[0].strip() + " = " + tokens[1].strip() + ";"
+                        if not variable_name in pc_without_error_func_declarations:
+                            pc_without_error_func_definitions += "float "
+                        pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
                         c_defined_variables.append(variable_name)
             input_file.close()
 
