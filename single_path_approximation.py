@@ -21,6 +21,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     index = []
     exec("scaling = 1.0", None, globals())
     input_error_repeat = 10
+    random.seed(0)
     for root, dirs, files in os.walk(result_path):
         for filename in files:
             if filename.endswith(".prob"):
@@ -93,6 +94,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
         path_condition_without_error = path_condition_without_error.replace("<< ", "<< (int)")
         path_condition_without_error = path_condition_without_error.replace("true", "1");
         path_condition_without_error = path_condition_without_error.replace("false", "0");
+
     #build C function to check satisfiability of path conditions with and without error
     pc_without_error_func = "int without_error() {\n float scaling = 1.0;"
     pc_without_error_func_declarations = dict()
@@ -103,6 +105,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
             pc_without_error_func_declarations[var[1]] = int(var[3])
 
     pc_without_error_func_definitions = ""
+
     # get an input, for which the path condition (without error) is satisfied
     print("\nInput values\n================================")
     result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.ktest'], stdout=subprocess.PIPE)
@@ -116,14 +119,21 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
             exec("%s = []" % temp.split('_')[-1].strip(), None, globals())
         else:
             exec("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
-            print("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())))
+            #if the inputs are zero, then the expressions will not work because they use relative error
+            if(not float(tokens[idx + 9].strip()) == 0.0):
+                print("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())))
             pc_without_error_func_definitions += tokens[idx + 3].strip().replace("'", "") + " = " + str(tokens[idx + 9].strip()) + ";"
         idx += 9
 
     #load pre-defined input in file (used mainly for floating point constants)
     largest_index = dict()
     if(not input_path == ''):
-        input_file = open(input_path, "r")
+        try:
+            input_file = open(input_path + "input_" + selected_path_id + ".txt", "r")
+        except:
+            print("Cannot open input file")
+            quit()
+
         defined_variables = []
         c_defined_variables = []
         for line in input_file:
@@ -153,20 +163,20 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     for variable_name, num_elements in pc_without_error_func_declarations.items():
         if variable_name in largest_index:
             if num_elements < largest_index[variable_name]:
-                pc_without_error_func += "int " + variable_name + "[" + str(largest_index[variable_name] + 1) + "];\n"
+                pc_without_error_func += "float " + variable_name + "[" + str(largest_index[variable_name] + 1) + "];\n"
             elif num_elements > 0:
-                pc_without_error_func += "int " + variable_name + "[" + str(num_elements) + "];\n"
+                pc_without_error_func += "float " + variable_name + "[" + str(num_elements) + "];\n"
             else:
-                pc_without_error_func += "int " + variable_name + ";\n"
+                pc_without_error_func += "float " + variable_name + ";\n"
         elif num_elements > 0:
-            pc_without_error_func += "int " + variable_name + "[" + str(num_elements) + "];\n"
+            pc_without_error_func += "float " + variable_name + "[" + str(num_elements) + "];\n"
         else:
-            pc_without_error_func += "int " + variable_name + ";\n"
+            pc_without_error_func += "float " + variable_name + ";\n"
 
     pc_without_error_func += pc_without_error_func_definitions
         
     pc_with_error_func = pc_without_error_func
-    pc_without_error_func += "\nint answer = " + path_condition_without_error + ";\nreturn answer;}"
+    pc_without_error_func += "\nfloat answer = " + path_condition_without_error + ";\nreturn answer;}"
     #Check if path condition without error is satisfied with the input
     #Cannot check this because python doesn't have integer division as implemented in C!!! argh!!!!!
     if(not path_condition_without_error == ""):
@@ -225,7 +235,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                         input_error = random.uniform(0.0, 1.0)
                         exec("%s = %f" % (var_with_err_name, input_error), None, globals())
                         error_added_string = var_with_err_name + " = " + str(input_error) + ";"
-                        function_string = pc_with_error_func + error_added_string + "\nint answer = " + path_condition_with_error + ";\nreturn answer;}"
+                        function_string = pc_with_error_func + error_added_string + "\nfloat answer = " + path_condition_with_error + ";\nreturn answer;}"
 
                         # Check if path condition with error is satisfied
                         if(path_condition_with_error == ''):
@@ -316,13 +326,13 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     non_approximable_output_strings = list(set(non_approximable_output_strings))
 
     # Print out the approximable and non-approximable variables
-    print("\nApproximable variables(in increasing order of sensitivity)\n================================")
+    print("\nApproximable variables (in increasing order of sensitivity)\n================================")
     for var in approximable_input:
         print(var.strip(",") + " (input)")
     for var in approximable_output_strings:
         print(var)
 
-    print("\nNon-approximable variables(in increasing order of sensitivity)\n================================")
+    print("\nNon-approximable variables (in increasing order of sensitivity)\n================================")
     for var in non_approximable_input:
         print(var.strip(",") + " (input)")
     for var in non_approximable_output_strings:
