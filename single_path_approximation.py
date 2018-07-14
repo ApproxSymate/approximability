@@ -131,8 +131,12 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
         try:
             input_file = open(input_path + "input_" + selected_path_id + ".txt", "r")
         except:
-            print("Cannot open input file")
-            quit()
+            try:
+                # Use default input file if we could not open the path-specific input file
+                input_file = open(input_path + "input.txt", "r")
+            except:
+                print("Cannot open input file")
+                quit()
 
         defined_variables = []
         c_defined_variables = []
