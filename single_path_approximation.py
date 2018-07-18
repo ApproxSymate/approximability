@@ -268,13 +268,14 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                         function_string = pc_with_error_func + error_added_string + "\nfloat answer = " + path_condition_with_error + ";\nreturn answer;}"
 
                         #evaluate math calls
-                        for args in math_calls:
-                            #get the argument value
-                            input_arg = eval(args[3], None, globals())
-                            exec("%s = math.%s(%f)" % (args[1], args[0], input_arg), None, globals())
-                            input_error_arg = eval(args[4], None, globals())
-                            exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], input_arg, input_error_arg), None, globals())
-                            exec("%s = abs((%s - %s)/%s)" % (args[2], error_result, args[1], args[1]), None, globals())
+                        if(math_calls_present):
+                            for args in math_calls:
+                                #get the argument value
+                                input_arg = eval(args[3], None, globals())
+                                exec("%s = math.%s(%f)" % (args[1], args[0], input_arg), None, globals())
+                                input_error_arg = eval(args[4], None, globals())
+                                exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], input_arg, input_error_arg), None, globals())
+                                exec("%s = abs((%s - %s)/%s)" % (args[2], error_result, args[1], args[1]), None, globals())
 
                         # Check if path condition with error is satisfied
                         if(path_condition_with_error == ''):
