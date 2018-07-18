@@ -8,6 +8,7 @@ import sys
 import ctypes
 import cinpy
 import math
+from pathlib import Path
 
 from common import get_var_name_from_source
 
@@ -209,7 +210,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     #read math function calls
     math_calls_present = 0
-    if(os.stat(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf').st_size > 0):
+    if(Path(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf').exists()):
         math_calls_present = 1
     if(math_calls_present):
         math_calls = []
@@ -337,10 +338,16 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
                 # If for at least one variable in the expression, the output is approximable, then add to approximable list.
                 # Else add to the non-approximable list
-                if(is_var_approximable):
-                    approximable_var.append(((average_sensitivy / len(approximable_input)), method_name_line_tokens[2] + ' ' + method_name))
+                identifying_string = ''
+                if(method_name_line_tokens[2] == "0"):
+                    identifying_string = '0 ' + method_name_line_tokens[6] + ' ' + method_name
                 else:
-                    non_approximable_var.append(((average_sensitivy / len(approximable_input)), method_name_line_tokens[2] + ' ' + method_name, path_with_error_satisfied))
+                    identifying_string = method_name_line_tokens[2] + ' ' + method_name
+
+                if(is_var_approximable):
+                    approximable_var.append(((average_sensitivy / len(approximable_input)), identifying_string))
+                else:
+                    non_approximable_var.append(((average_sensitivy / len(approximable_input)), identifying_string, path_with_error_satisfied))
             else:
                 continue
 

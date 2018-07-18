@@ -1,5 +1,8 @@
 def get_var_name_from_source(var_line, source_path):
     tokens = var_line.split(' ')
+    if(tokens[0] == "0"):
+        return tokens[1].strip(',') + " " + tokens[2]
+
     var_name = ""
     fp = open(source_path)
     for i, line in enumerate(fp):
