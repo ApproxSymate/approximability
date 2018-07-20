@@ -227,7 +227,6 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 math_call_arg = next_line.split(',')[0]
                 math_call_arg_err = next_line.split(',')[1].strip(' ')
                 infile.readline()
-                infile.readline()
                 math_calls.append((func_name, math_call_result_var, math_call_result_error_var, math_call_arg, math_call_arg_err))
 
     # Read expression
