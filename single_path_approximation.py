@@ -226,6 +226,15 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 next_line = infile.readline()
                 math_call_arg = next_line.split(',')[0]
                 math_call_arg_err = next_line.split(',')[1].strip(' ')
+
+                #sanitize math expressions
+                math_call_arg_err = math_call_arg_err.replace(" = ", " == ")
+                math_call_arg_err = math_call_arg_err.replace(">> 0", "")
+                math_call_arg_err = math_call_arg_err.replace(">> ", ">> (int)")
+                math_call_arg_err = math_call_arg_err.replace("<< ", "<< (int)")
+                math_call_arg_err = math_call_arg_err.replace("true", "1");
+                math_call_arg_err = math_call_arg_err.replace("false", "0");
+
                 infile.readline()
                 math_calls.append((func_name, math_call_result_var, math_call_result_error_var, math_call_arg, math_call_arg_err))
 
@@ -364,7 +373,9 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     approximable_output_strings = []
     non_approximable_output_strings = []
     for var in approximable_var:
-        approximable_output_strings.append(get_var_name_from_source(var[1], source_path))
+        name_to_append = get_var_name_from_source(var[1], source_path)
+        if(name_to_append != ''):
+            approximable_output_strings.append(name_to_append)
     for var in non_approximable_var:
         if(var[2]):
             non_approximable_output_strings.append(get_var_name_from_source(var[1], source_path))
