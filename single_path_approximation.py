@@ -318,31 +318,23 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                         continue;
 
                     if(len(result)):
-                        # Check for monotonicity of output error. If not monotonous continue to evaluate other inputs.
                         result = sorted(result, key=lambda x: x[0])
-                        monotonous_count = 0
-                        for index, item in enumerate(result):
-                            if(index < (len(result) - 1) and item[1] <= result[index + 1][1]):
-                                monotonous_count += 1
+                        list_x, list_y = zip(*result)
 
-                        # If at least 90% monotonous, get the linear regression gradient
-                        if((monotonous_count / (len(result) - 1)) >= 0.8):
-                            list_x, list_y = zip(*result)
+                        # linear reqression code from https://www.geeksforgeeks.org/linear-regression-python-implementation/
+                        xdata = np.array(list_x)
+                        ydata = np.array(list_y)
+                        n = np.size(xdata)
+                        m_x, m_y = np.mean(xdata), np.mean(ydata)
+                        SS_xy = np.sum(ydata * xdata - n * m_y * m_x)
+                        SS_xx = np.sum(xdata * xdata - n * m_x * m_x)
+                        b_1 = SS_xy / SS_xx
 
-                            # linear reqression code from https://www.geeksforgeeks.org/linear-regression-python-implementation/
-                            xdata = np.array(list_x)
-                            ydata = np.array(list_y)
-                            n = np.size(xdata)
-                            m_x, m_y = np.mean(xdata), np.mean(ydata)
-                            SS_xy = np.sum(ydata * xdata - n * m_y * m_x)
-                            SS_xx = np.sum(xdata * xdata - n * m_x * m_x)
-                            b_1 = SS_xy / SS_xx
-
-                            # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
-                            average_sensitivy += b_1
-                            # The test value is 1.1 instead of 1 because sometimes floats are slightly greater than 1 (example 1.0000000770289357)
-                            if(b_1 <= 1.1):
-                                is_var_approximable = 1
+                        # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
+                        average_sensitivy += b_1
+                        # The test value is 1.1 instead of 1 because sometimes floats are slightly greater than 1 (example 1.0000000770289357)
+                        if(b_1 <= 1.1):
+                            is_var_approximable = 1
 
                 # If for at least one variable in the expression, the output is approximable, then add to approximable list.
                 # Else add to the non-approximable list
