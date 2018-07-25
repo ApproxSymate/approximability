@@ -9,7 +9,7 @@ def get_var_name_from_source(var_line, source_path):
         if((i + 1) == int(tokens[0])):
             # print(var_line)
             # print(line)
-            if('for' in line):
+            if('for (' in line):
                 line_tokens = line.split(';');
                 characters = list(line_tokens[2])
                 for letter in characters:
