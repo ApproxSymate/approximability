@@ -31,7 +31,7 @@ def approximate_path_by_pathcount(args, result_path, source_path, ktest_tool_pat
     for root, dirs, files in os.walk(result_path):
         for filename in files:
             if filename.endswith(".prob"):
-                with open(result_path + filename, 'r') as fin:
+                with open(result_path + "/" + filename, 'r') as fin:
                     idx = int(fin.readline().split(",")[2].strip())
                     prob = float(fin.readline().split(",")[1])
                     new_path = path.Path(idx, prob)
@@ -80,7 +80,7 @@ def approximate_path_by_pathcount(args, result_path, source_path, ktest_tool_pat
 
         # Get the path condition with error
         path_condition_with_error = ""
-        source = open(result_path + "test" + "{:0>6}".format(str(p.path_id)) + ".kquery_precision_error", "r")
+        source = open(result_path + "/" + "test" + "{:0>6}".format(str(p.path_id)) + ".kquery_precision_error", "r")
         for line in source:
             path_condition_with_error += line.rstrip("\n\r")
             path_condition_with_error += " "
@@ -93,7 +93,7 @@ def approximate_path_by_pathcount(args, result_path, source_path, ktest_tool_pat
         path_condition_with_error = path_condition_with_error.replace("<< ", "*2**")
 
         # generate an input, for which the path condition is satisfied
-        result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "test" + "{:0>6}".format(str(p.path_id)) + '.ktest'], stdout=subprocess.PIPE)
+        result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "/" + "test" + "{:0>6}".format(str(p.path_id)) + '.ktest'], stdout=subprocess.PIPE)
         output_string = result.stdout.decode('utf-8')
         tokens = re.split(r'\n|:', output_string)
         idx = 5
@@ -105,7 +105,7 @@ def approximate_path_by_pathcount(args, result_path, source_path, ktest_tool_pat
         if(not os.path.isfile(result_path + "test" + "{:0>6}".format(str(p.path_id)) + '.precision_error')):
             continue
 
-        with open(result_path + "test" + "{:0>6}".format(str(p.path_id)) + '.precision_error', 'r') as infile:
+        with open(result_path + "/" + "test" + "{:0>6}".format(str(p.path_id)) + '.precision_error', 'r') as infile:
             for line in infile:
                 method_name_line_tokens = line.split()
                 if(len(method_name_line_tokens) > 0 and method_name_line_tokens[0] == 'Line'):

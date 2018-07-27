@@ -27,7 +27,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     for root, dirs, files in os.walk(result_path):
         for filename in files:
             if filename.endswith(".prob"):
-                with open(result_path + filename, 'r') as fin:
+                with open(result_path + "/" + filename, 'r') as fin:
                     firstline = fin.readline().split(",")
                     index.append(firstline[2].strip())
                     secondline = fin.readline().split(",")
@@ -81,7 +81,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     source.close()
 
     # Get the path condition with error for the selected path
-    source = open(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_precision_error", "r")
+    source = open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_precision_error", "r")
     path_condition_with_error = source.readline().rstrip("\n\r")
     path_condition_without_error = source.readline().rstrip("\n\r")
     source.close()
@@ -113,7 +113,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     # get an input, for which the path condition (without error) is satisfied
     print("\nInput values\n================================")
-    result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.ktest'], stdout=subprocess.PIPE)
+    result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.ktest'], stdout=subprocess.PIPE)
     output_string = result.stdout.decode('utf-8')
     tokens = re.split(r'\n|:', output_string)
     idx = 5
@@ -134,11 +134,11 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     largest_index = dict()
     if(not input_path == ''):
         try:
-            input_file = open(input_path + "input_" + selected_path_id + ".txt", "r")
+            input_file = open(input_path + "/" + "input_" + selected_path_id + ".txt", "r")
         except:
             try:
                 # Use default input file if we could not open the path-specific input file
-                input_file = open(input_path + "input.txt", "r")
+                input_file = open(input_path + "/" + "input.txt", "r")
             except:
                 print("Cannot open input file")
                 quit()
@@ -210,11 +210,11 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     #read math function calls
     math_calls_present = 0
-    if(Path(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf').exists()):
+    if(Path(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf').exists()):
         math_calls_present = 1
     if(math_calls_present):
         math_calls = []
-        with open(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf', 'r') as infile:
+        with open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf', 'r') as infile:
             for line in infile:
                 # Read function name
                 func_name = line.split('_')[0];
@@ -240,7 +240,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     # Read expression
     expression_count = 0
-    with open(result_path + "test" + "{:0>6}".format(str(selected_path_id)) + '.expressions', 'r') as infile:
+    with open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.expressions', 'r') as infile:
         for line in infile:
             method_name_line_tokens = line.split()
             if(len(method_name_line_tokens) > 0 and method_name_line_tokens[1] == 'Line'):
