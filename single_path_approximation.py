@@ -31,10 +31,9 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                     firstline = fin.readline().split(",")
                     index.append(firstline[2].strip())
                     secondline = fin.readline().split(",")
-                    depth.append(secondline[0])
+                    depth.append(int(secondline[0]))
                     prob.append(float(secondline[1]))
 
-    #print(prob)
     if(len(depth) > 0):
         max_depth = max(depth)
         max_probabilities = []
