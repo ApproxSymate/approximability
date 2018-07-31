@@ -182,7 +182,40 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
             pc_without_error_func += "float " + variable_name + ";\n"
 
     pc_without_error_func += pc_without_error_func_definitions
-        
+
+    #read math function calls
+    math_calls_present = 0
+    if(Path(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf').exists()):
+        math_calls_present = 1
+    if(math_calls_present):
+        math_calls = []
+        with open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf', 'r') as infile:
+            for line in infile:
+                # Read function name
+                func_name = line.split('_')[0];
+                math_call_result_var = line.strip('\n')
+                math_call_result_error_var = line.strip('\n') + "_err"
+
+                # Read the arg
+                # Note: Because all of the functions that we're concerned take only one arg, for now we just handle one for now
+                next_line = infile.readline()
+                math_call_arg = next_line.split(',')[0]
+                math_call_arg_err = next_line.split(',')[1].strip(' ')
+
+                #sanitize math expressions
+                math_call_arg_err = math_call_arg_err.replace(" = ", " == ")
+                math_call_arg_err = math_call_arg_err.replace(">> 0", "")
+                math_call_arg_err = math_call_arg_err.replace(">> ", ">> (int)")
+                math_call_arg_err = math_call_arg_err.replace("<< ", "<< (int)")
+                math_call_arg_err = math_call_arg_err.replace("true", "1");
+                math_call_arg_err = math_call_arg_err.replace("false", "0");
+
+                infile.readline()
+                math_calls.append((func_name, math_call_result_var, math_call_result_error_var, math_call_arg, math_call_arg_err))
+                input_arg = eval(math_call_arg, None, globals())
+                exec("%s = math.%s(%f)" % (math_call_result_var, func_name, input_arg), None, globals())
+                pc_without_error_func += ("float " + math_call_result_var + "=" + str(eval(math_call_result_var))) + ";"
+
     pc_with_error_func = pc_without_error_func
     pc_without_error_func += "\nfloat answer = " + path_condition_without_error + ";\nreturn answer;}"
     #Check if path condition without error is satisfied with the input
@@ -206,36 +239,6 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     for temp_var in approximable_input:
         pc_with_error_func += "float " + temp_var + "_err" + " = " + str(0.0) + ";"
-
-    #read math function calls
-    math_calls_present = 0
-    if(Path(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf').exists()):
-        math_calls_present = 1
-    if(math_calls_present):
-        math_calls = []
-        with open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.mathf', 'r') as infile:
-            for line in infile:
-                # Read function name
-                func_name = line.split('_')[0];
-                math_call_result_var = line.strip('\n')
-                math_call_result_error_var = "err_" + line.strip('\n')
-
-                # Read the arg
-                # Note: Because all of the functions that we're concerned take only one arg, for now we just handle one for now
-                next_line = infile.readline()
-                math_call_arg = next_line.split(',')[0]
-                math_call_arg_err = next_line.split(',')[1].strip(' ')
-
-                #sanitize math expressions
-                math_call_arg_err = math_call_arg_err.replace(" = ", " == ")
-                math_call_arg_err = math_call_arg_err.replace(">> 0", "")
-                math_call_arg_err = math_call_arg_err.replace(">> ", ">> (int)")
-                math_call_arg_err = math_call_arg_err.replace("<< ", "<< (int)")
-                math_call_arg_err = math_call_arg_err.replace("true", "1");
-                math_call_arg_err = math_call_arg_err.replace("false", "0");
-
-                infile.readline()
-                math_calls.append((func_name, math_call_result_var, math_call_result_error_var, math_call_arg, math_call_arg_err))
 
     # Read expression
     expression_count = 0
@@ -273,17 +276,18 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                         input_error = random.uniform(0.0, 1.0)
                         exec("%s = %f" % (var_with_err_name, input_error), None, globals())
                         error_added_string = var_with_err_name + " = " + str(input_error) + ";"
-                        function_string = pc_with_error_func + error_added_string + "\nfloat answer = " + path_condition_with_error + ";\nreturn answer;}"
+                        function_string = pc_with_error_func + error_added_string
 
                         #evaluate math calls
                         if(math_calls_present):
                             for args in math_calls:
                                 #get the argument value
-                                input_arg = eval(args[3], None, globals())
-                                exec("%s = math.%s(%f)" % (args[1], args[0], input_arg), None, globals())
                                 input_error_arg = eval(args[4], None, globals())
-                                exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], input_arg, input_error_arg), None, globals())
+                                exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], eval(args[1]), input_error_arg), None, globals())
                                 exec("%s = abs((%s - %s)/%s)" % (args[2], error_result, args[1], args[1]), None, globals())
+                                function_string += ("float " + args[2] + "=" + str(eval(args[2])) + ";")
+
+                        function_string += ("\nfloat answer = " + path_condition_with_error + ";\nreturn answer;}")
 
                         # Check if path condition with error is satisfied
                         if(path_condition_with_error == ''):
