@@ -18,6 +18,9 @@ def get_var_name_from_source(var_line, source_path):
                     else:
                         var_name += letter;
                 var_name = var_name.strip()
+            elif('memcpy' in line):
+                var_name = line.split(',')[0]
+                var_name = var_name.split('(')[1].strip()
             elif('+=' in line or "-=" in line or '/=' in line or '*=' in line):
                 line_tokens = line.split('=');
                 characters = list(line_tokens[0])
