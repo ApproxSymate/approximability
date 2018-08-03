@@ -213,7 +213,10 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 infile.readline()
                 math_calls.append((func_name, math_call_result_var, math_call_result_error_var, math_call_arg, math_call_arg_err))
                 input_arg = eval(math_call_arg, None, globals())
-                exec("%s = math.%s(%f)" % (math_call_result_var, func_name, input_arg), None, globals())
+                if(func_name == "round"):
+                    exec("%s = round(%f)" % (math_call_result_var, input_arg), None, globals())
+                else:
+                    exec("%s = math.%s(%f)" % (math_call_result_var, func_name, input_arg), None, globals())
                 pc_without_error_func += ("float " + math_call_result_var + "=" + str(eval(math_call_result_var))) + ";"
 
     pc_with_error_func = pc_without_error_func
@@ -283,8 +286,15 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                             for args in math_calls:
                                 #get the argument value
                                 input_error_arg = eval(args[4], None, globals())
-                                exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], eval(args[1]), input_error_arg), None, globals())
-                                exec("%s = abs((%s - %s)/%s)" % (args[2], error_result, args[1], args[1]), None, globals())
+                                if(args[0] == "round"):
+                                    exec("%s = round(%f*(1 - %f))" % ("error_result", eval(args[1]), input_error_arg), None, globals())
+                                else:
+                                    exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], eval(args[1]), input_error_arg), None, globals())
+
+                                if(eval(args[1]) != 0):
+                                    exec("%s = abs((%s - %s)/%s)" % (args[2], error_result, args[1], args[1]), None, globals())
+                                else:
+                                    exec("%s = abs((%s - %s)/1 + %s)" % (args[2], error_result, args[1], args[1]), None, globals())
                                 function_string += ("float " + args[2] + "=" + str(eval(args[2])) + ";")
 
                         function_string += ("\nfloat answer = " + path_condition_with_error + ";\nreturn answer;}")
