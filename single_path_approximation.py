@@ -285,7 +285,11 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                         if(math_calls_present):
                             for args in math_calls:
                                 #get the argument value
-                                input_error_arg = eval(args[4], None, globals())
+                                try:
+                                    input_error_arg = eval(args[4], None, globals())
+                                except:
+                                    input_error_arg = 0
+
                                 if(args[0] == "round"):
                                     exec("%s = round(%f*(1 - %f))" % ("error_result", eval(args[1]), input_error_arg), None, globals())
                                 else:
