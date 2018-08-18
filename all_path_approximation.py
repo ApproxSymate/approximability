@@ -206,7 +206,7 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
         if(not path_condition_without_error == ""):
             func_without_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), pc_without_error_func)
             if(func_without_error()):
-                out_string +=("\out_string +=t values satisfies path condition without error...\n")
+                out_string +=("\nInput values satisfies path condition without error...\n")
             else:
                 out_string +=("\nInput values do not satisfy path condition without error...\n")
         else:
