@@ -9,14 +9,17 @@ import ctypes
 import cinpy
 import math
 from pathlib import Path
+import faulthandler
 
 from common import get_var_name_from_source
 
 def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_path):
     print("Source: " + source_path)
     print("Output: " + result_path + "\n")
+    faulthandler.enable()
 
     input_error_repeat = 10
+    exec("scaling = 1.0", None, globals())
 
     # Get the input variables and their types and mark those for which error is tracked
     # TODO: Handle floats converted to ints (we only need to do this handling if the conversion happened in the input)
@@ -57,6 +60,7 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
 
     for p in paths:
         selected_path_id = p
+        print("Selected path #:" + selected_path_id)
         out_string =("Selected path #:" + selected_path_id + "\n\n") + var_string
 
         # Get the path condition with error for the selected path
@@ -120,7 +124,8 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
                     input_file = open(input_path + "/" + "input.txt", "r")
                 except:
                     out_string +=("Cannot open input file\n")
-                    quit()
+                    print("Cannot open input file for path #" + selected_path_id)
+                    continue
 
             defined_variables = []
             c_defined_variables = []
@@ -395,3 +400,5 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
         f = open(result_path + "/approximability_" + selected_path_id +".txt","w+")
         f.write(out_string)
         f.close()
+
+        print("Path " + selected_path_id + " done.")
