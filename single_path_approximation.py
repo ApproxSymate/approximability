@@ -23,7 +23,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     index = []
     exec("scaling = 1.0", None, globals())
     input_error_repeat = 10
-    random.seed(0)
+    random.seed(a=0)
     for root, dirs, files in os.walk(result_path):
         for filename in files:
             if filename.endswith(".prob"):

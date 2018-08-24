@@ -59,6 +59,7 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
                     paths.append(fin.readline().split(",")[2].strip())
 
     for p in paths:
+        random.seed(a=0)
         selected_path_id = p
         print("Selected path #:" + selected_path_id)
         out_string =("Selected path #:" + selected_path_id + "\n\n") + var_string
