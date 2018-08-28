@@ -330,8 +330,10 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                     try:
                                         output_error = eval(exp, None, globals())
                                         result.append((input_error, output_error))
-                                    except:
-                                        print("Exception occured in eval (2)")
+                                    except Exception as e:
+                                        print("2" + e)
+                                        print(method_name_line_tokens[2] + ' ' + method_name)
+                                        #print("Exception occured in eval (2)")
                                         continue;
 
                     if(len(result)):
