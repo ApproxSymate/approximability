@@ -59,7 +59,6 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
                     paths.append(fin.readline().split(",")[2].strip())
 
     for p in paths:
-        random.seed(a=0)
         selected_path_id = p
         print("Selected path #:" + selected_path_id)
         out_string =("Selected path #:" + selected_path_id + "\n\n") + var_string
@@ -259,6 +258,7 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
 
                         # for repeat
                         result = []
+                        random.seed(a=0)
                         for x in range(input_error_repeat):
                             # Generate a random error value in (0,1) for the concerned variable
                             var_with_err_name = var + "_err"
