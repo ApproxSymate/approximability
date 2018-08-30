@@ -22,7 +22,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     prob = []
     index = []
     exec("scaling = 1.0", None, globals())
-    input_error_repeat = 10
+    input_error_repeat = 3
 
     for root, dirs, files in os.walk(result_path):
         for filename in files:
@@ -316,8 +316,8 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                 try:
                                     output_error = eval(exp, None, globals())
                                     result.append((input_error, output_error))
-                                except:
-                                    print("Exception occured in eval (1)")
+                                except Exception as e:
+                                    print("1 " + str(e))
                                     continue;
                         else:
                             func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), function_string)
@@ -332,7 +332,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                         output_error = eval(exp, None, globals())
                                         result.append((input_error, output_error))
                                     except Exception as e:
-                                        print("2" + e)
+                                        print("2 " + str(e))
                                         print(method_name_line_tokens[2] + ' ' + method_name)
                                         #print("Exception occured in eval (2)")
                                         continue;

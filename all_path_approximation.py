@@ -301,8 +301,8 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
                                     try:
                                         output_error = eval(exp, None, globals())
                                         result.append((input_error, output_error))
-                                    except:
-                                        out_string +=("Exception occured in eval (1)\n")
+                                    except Exception as e:
+                                        print("1 " + str(e))
                                         continue;
                             else:
                                 func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), function_string)
@@ -316,8 +316,8 @@ def approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_p
                                         try:
                                             output_error = eval(exp, None, globals())
                                             result.append((input_error, output_error))
-                                        except:
-                                            out_string +=("Exception occured in eval (2)\n")
+                                        except Exception as e:
+                                            print("2 " + str(e))
                                             continue;
 
                         if(len(result)):
