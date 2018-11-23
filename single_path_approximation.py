@@ -22,7 +22,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     prob = []
     index = []
     exec("scaling = 1.0", None, globals())
-    input_error_repeat = 3
+    input_error_repeat = 100
 
     for root, dirs, files in os.walk(result_path):
         for filename in files:
@@ -46,6 +46,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     else:
         selected_path_id = '1'
 
+    #selected_path_id = '2'
     #selected_path_id = '23' - floodfill
     #selected_path_id = '11' - raytracer
     print("Selected path #:" + selected_path_id + "\n")
@@ -110,25 +111,6 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     pc_without_error_func_definitions = ""
 
-    # get an input, for which the path condition (without error) is satisfied
-    print("\nInput values\n================================")
-    result = subprocess.run([ktest_tool_path, '--write-ints', result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + '.ktest'], stdout=subprocess.PIPE)
-    output_string = result.stdout.decode('utf-8')
-    tokens = re.split(r'\n|:', output_string)
-    idx = 5
-    num_args = int(tokens[idx].strip())
-    for args in range(num_args):
-        temp = tokens[idx + 3].strip().replace("'", "")
-        if('arr' in temp):
-            exec("%s = []" % temp.split('_')[-1].strip(), None, globals())
-        else:
-            exec("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())), None, globals())
-            #if the inputs are zero, then the expressions will not work because they use relative error
-            if(not float(tokens[idx + 9].strip()) == 0.0):
-                print("%s = %f" % (tokens[idx + 3].strip().replace("'", ""), float(tokens[idx + 9].strip())))
-            pc_without_error_func_definitions += tokens[idx + 3].strip().replace("'", "") + " = " + str(tokens[idx + 9].strip()) + ";"
-        idx += 9
-
     #load pre-defined input in file (used mainly for floating point constants)
     largest_index = dict()
     if(not input_path == ''):
@@ -139,7 +121,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 # Use default input file if we could not open the path-specific input file
                 input_file = open(input_path + "/" + "input.txt", "r")
             except:
-                print("Cannot open input file")
+                print("Cannot open input file: " + input_path + "/" + "input.txt")
                 quit()
 
         defined_variables = []
@@ -151,14 +133,14 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 exec("%s = []" % (variable_name), None, globals())
                 defined_variables.append(variable_name)
             if('[' in tokens[0] and ']' in tokens[0]):
-                exec("%s.insert(%d, %f)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
-                print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+                exec("%s.insert(%d, %d)" % (tokens[0].split('[')[0].strip(), int(tokens[0].split('[')[1].split(']')[0].strip()), float(tokens[1])), None, globals())
+                print("%s = %d" % (tokens[0].strip(), float(tokens[1].strip())))
                 pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
                 largest_index[variable_name] = int(tokens[0].split('[')[1].split(']')[0].strip())
             else:
                 variable_name = tokens[0].strip()
-                exec("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())), None, globals())
-                print("%s = %f" % (tokens[0].strip(), float(tokens[1].strip())))
+                exec("%s = %d" % (tokens[0].strip(), float(tokens[1].strip())), None, globals())
+                print("%s = %d" % (tokens[0].strip(), float(tokens[1].strip())))
                 if variable_name in c_defined_variables:
                     pc_without_error_func_definitions += tokens[0].strip() + " = " + tokens[1].strip() + ";"
                 else:
@@ -171,15 +153,15 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     for variable_name, num_elements in pc_without_error_func_declarations.items():
         if variable_name in largest_index:
             if num_elements < largest_index[variable_name]:
-                pc_without_error_func += "float " + variable_name + "[" + str(largest_index[variable_name] + 1) + "];\n"
+                pc_without_error_func += "int " + variable_name + "[" + str(largest_index[variable_name] + 1) + "];\n"
             elif num_elements > 0:
-                pc_without_error_func += "float " + variable_name + "[" + str(num_elements) + "];\n"
+                pc_without_error_func += "int " + variable_name + "[" + str(num_elements) + "];\n"
             else:
-                pc_without_error_func += "float " + variable_name + ";\n"
+                pc_without_error_func += "int " + variable_name + ";\n"
         elif num_elements > 0:
-            pc_without_error_func += "float " + variable_name + "[" + str(num_elements) + "];\n"
+            pc_without_error_func += "int " + variable_name + "[" + str(num_elements) + "];\n"
         else:
-            pc_without_error_func += "float " + variable_name + ";\n"
+            pc_without_error_func += "int " + variable_name + ";\n"
 
     pc_without_error_func += pc_without_error_func_definitions
 
@@ -194,7 +176,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 # Read function name
                 func_name = line.split('_')[0];
                 math_call_result_var = line.strip('\n')
-                math_call_result_error_var = line.strip('\n') + "_err"
+                math_call_result_error_var = math_call_result_var + "_err"
 
                 # Read the arg
                 # Note: Because all of the functions that we're concerned take only one arg, for now we just handle one for now
@@ -263,6 +245,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 is_var_approximable = 0
                 average_sensitivy = 0.0
                 path_with_error_satisfied = 0
+                exp_func_string = pc_with_error_func
 
                 # For each approximable input variable
                 for idx, var in enumerate(approximable_input):
@@ -270,6 +253,8 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                     for temp_var in approximable_input:
                         var_with_err_name = temp_var + "_err"
                         exec("%s = %f" % (var_with_err_name, 0.0), None, globals())
+                        temp_string = var_with_err_name + " = " + str(0.0) + ";"
+                        exp_func_string += temp_string
 
                     # for repeat
                     result = []
@@ -281,6 +266,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                         exec("%s = %f" % (var_with_err_name, input_error), None, globals())
                         error_added_string = var_with_err_name + " = " + str(input_error) + ";"
                         function_string = pc_with_error_func + error_added_string
+                        new_exp_func_string = exp_func_string + error_added_string
 
                         #evaluate math calls
                         if(math_calls_present):
@@ -291,16 +277,22 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                 except:
                                     input_error_arg = 0
 
+                                # evaluate the math call variable
                                 if(args[0] == "round"):
                                     exec("%s = round(%f*(1 - %f))" % ("error_result", eval(args[1]), input_error_arg), None, globals())
                                 else:
-                                    exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], eval(args[1]), input_error_arg), None, globals())
+                                    if(args[0] == "sqrt" and (1 - input_error_arg) < 0):
+                                        continue;
+                                    else:
+                                        exec("%s = math.%s(%f*(1 - %f))" % ("error_result", args[0], eval(args[1]), input_error_arg), None, globals())
 
+                                # evaluate the math call variable error
                                 if(eval(args[1]) != 0):
                                     exec("%s = abs((%s - %s)/%s)" % (args[2], error_result, args[1], args[1]), None, globals())
                                 else:
                                     exec("%s = abs((%s - %s)/1 + %s)" % (args[2], error_result, args[1], args[1]), None, globals())
                                 function_string += ("float " + args[2] + "=" + str(eval(args[2])) + ";")
+                                new_exp_func_string += ("float " + args[2] + "=" + str(eval(args[2])) + ";")
 
                         function_string += ("\nfloat answer = " + path_condition_with_error + ";\nreturn answer;}")
 
@@ -329,7 +321,20 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                     output_error = 0
                                 else:
                                     try:
-                                        output_error = eval(exp, None, globals())
+                                        exp_string = exp
+                                        exp_string = exp_string.replace(" = ", " == ")
+                                        exp_string = exp_string.replace(">> 0", "")
+                                        exp_string = exp_string.replace(">> ", ">> (int)")
+                                        exp_string = exp_string.replace("<< ", "<< (int)")
+                                        exp_string = exp_string.replace("true", "1");
+                                        exp_string = exp_string.replace("false", "0");
+                                        temp_string = ("\nfloat answer = " + exp_string + ";\nreturn answer;}")
+                                        final_temp_string = new_exp_func_string + temp_string
+                                        final_temp_string = "float " + final_temp_string.split(' ', 1)[1]
+                                        #print(final_temp_string)
+                                        exp_func = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_float), final_temp_string)
+                                        output_error = exp_func()
+                                        #output_error = eval(exp, None, globals())
                                         result.append((input_error, output_error))
                                     except Exception as e:
                                         print("2 " + str(e))
