@@ -17,6 +17,7 @@ from path_probability_approximation import approximate_path_by_probability
 from path_count_approximation import approximate_path_by_pathcount
 
 with open(config_path, 'r') as infile:
+    print("Config path: " + config_path)
     result_path = infile.readline().split()[2].strip()
     source_path = infile.readline().split()[2].strip()
     ktest_tool_path = infile.readline().split()[2].strip()
