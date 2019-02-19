@@ -16,35 +16,10 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     print("Source: " + source_path)
     print("Output: " + result_path + "\n")
 
-    # Find the path longest path with the highest probabilty
-    # In case there are more than one, just pick one
-    depth = []
-    prob = []
-    index = []
     exec("scaling = 1.0", None, globals())
-    input_error_repeat = 100
+    input_error_repeat = 10
 
-    for root, dirs, files in os.walk(result_path):
-        for filename in files:
-            if filename.endswith(".prob"):
-                with open(result_path + "/" + filename, 'r') as fin:
-                    firstline = fin.readline().split(",")
-                    index.append(firstline[2].strip())
-                    secondline = fin.readline().split(",")
-                    depth.append(int(secondline[0]))
-                    prob.append(float(secondline[1]))
-
-    if(len(depth) > 0):
-        max_depth = max(depth)
-        max_probabilities = []
-        max_probabilities_index = []
-        for idx, val in enumerate(depth):
-            if val == max_depth:
-                max_probabilities.append(prob[idx])
-                max_probabilities_index.append(index[idx])
-        selected_path_id = max_probabilities_index[max_probabilities.index(max(max_probabilities))]
-    else:
-        selected_path_id = '1'
+    selected_path_id = get_path_for_approximation(result_path);
 
     #selected_path_id = '2'
     #selected_path_id = '23' - floodfill
@@ -54,31 +29,12 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     # Get the input variables and their types and mark those for which error is tracked
     # TODO: Handle floats converted to ints (we only need to do this handling if the conversion happened in the input)
     print("Input variables\n================================")
-    source = open(source_path, "r")
     input_variables = []
-    for line in source:
-        if re.match("(.*)klee_make_symbolic(.*)", line):
-            tokens = re.split(r'[(|)]|\"', line)
-            if('arr' in tokens[4]):
-                temp = tokens[4].split('_')
-                tokens[4] = temp[-1]
-                tokens[3] = tokens[3].split('*')[-1].replace(',','').strip()
-                input_variables.append((tokens[2], tokens[4], 1, tokens[3]))
-            else:
-                input_variables.append((tokens[2], tokens[4], 0, ''))
-            print(tokens[4])
-    source.close()
+    get_input_variables(input_variables, source_path);
 
     print("\nInput with error\n================================")
-    source = open(source_path, "r")
     approximable_input = []
-    for line in source:
-        if re.match("(.*)klee_track_error(.*)", line):
-            tokens = re.split(r'[(|)]|\"|&|,', line)
-            name = tokens[-3].split('_')[0]
-            approximable_input.append(name)
-            print(name)
-    source.close()
+    get_input_error_variables(approximable_input, source_path)
 
     # Get the path condition with error for the selected path
     source = open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_precision_error", "r")
@@ -86,19 +42,10 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     path_condition_without_error = source.readline().rstrip("\n\r")
     source.close()
     if(not path_condition_with_error == ' '):
-        path_condition_with_error = path_condition_with_error.replace(" = ", " == ")
-        path_condition_with_error = path_condition_with_error.replace(">> 0", "")
-        path_condition_with_error = path_condition_with_error.replace(">> ", ">> (int)")
-        path_condition_with_error = path_condition_with_error.replace("<< ", "<< (int)")
-        path_condition_with_error = path_condition_with_error.replace("true", "1");
-        path_condition_with_error = path_condition_with_error.replace("false", "0");
+        path_condition_with_error = sanitize_klee_expression(path_condition_with_error)
+
     if(not path_condition_without_error == ' '):
-        path_condition_without_error = path_condition_without_error.replace(" = ", " == ")
-        path_condition_without_error = path_condition_without_error.replace(">> 0", "")
-        path_condition_without_error = path_condition_without_error.replace(">> ", ">> (int)")
-        path_condition_without_error = path_condition_without_error.replace("<< ", "<< (int)")
-        path_condition_without_error = path_condition_without_error.replace("true", "1");
-        path_condition_without_error = path_condition_without_error.replace("false", "0");
+        path_condition_without_error = sanitize_klee_expression(path_condition_without_error)
 
     #build C function to check satisfiability of path conditions with and without error
     pc_without_error_func = "int without_error() {\n float scaling = 1.0;"
@@ -185,12 +132,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                 math_call_arg_err = next_line.split(',')[1].strip(' ')
 
                 #sanitize math expressions
-                math_call_arg_err = math_call_arg_err.replace(" = ", " == ")
-                math_call_arg_err = math_call_arg_err.replace(">> 0", "")
-                math_call_arg_err = math_call_arg_err.replace(">> ", ">> (int)")
-                math_call_arg_err = math_call_arg_err.replace("<< ", "<< (int)")
-                math_call_arg_err = math_call_arg_err.replace("true", "1");
-                math_call_arg_err = math_call_arg_err.replace("false", "0");
+                math_call_arg_err = sanitize_klee_expression(math_call_arg_err)
 
                 infile.readline()
                 math_calls.append((func_name, math_call_result_var, math_call_result_error_var, math_call_arg, math_call_arg_err))
@@ -321,13 +263,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
                                     output_error = 0
                                 else:
                                     try:
-                                        exp_string = exp
-                                        exp_string = exp_string.replace(" = ", " == ")
-                                        exp_string = exp_string.replace(">> 0", "")
-                                        exp_string = exp_string.replace(">> ", ">> (int)")
-                                        exp_string = exp_string.replace("<< ", "<< (int)")
-                                        exp_string = exp_string.replace("true", "1");
-                                        exp_string = exp_string.replace("false", "0");
+                                        exp_string = sanitize_klee_expression(exp)
                                         temp_string = ("\nfloat answer = " + exp_string + ";\nreturn answer;}")
                                         final_temp_string = new_exp_func_string + temp_string
                                         final_temp_string = "float " + final_temp_string.split(' ', 1)[1]
@@ -419,3 +355,67 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     print("\nApproximability of input variables\n================================")
     for idx, var in enumerate(approximable_input):
         print(var + ' : %d%%' % ((input_approximability_count[idx] / (expression_count * input_error_repeat)) * 100))
+
+def get_path_for_approximation(result_path):
+    # Find the path longest path with the highest probabilty
+    # In case there are more than one, just pick one
+    depth = []
+    prob = []
+    index = []
+    selected_path_id = '1'
+    for root, dirs, files in os.walk(result_path):
+        for filename in files:
+            if filename.endswith(".prob"):
+                with open(result_path + "/" + filename, 'r') as fin:
+                    firstline = fin.readline().split(",")
+                    index.append(firstline[2].strip())
+                    secondline = fin.readline().split(",")
+                    depth.append(int(secondline[0]))
+                    prob.append(float(secondline[1]))
+
+    if(len(depth) > 0):
+        max_depth = max(depth)
+        max_probabilities = []
+        max_probabilities_index = []
+        for idx, val in enumerate(depth):
+            if val == max_depth:
+                max_probabilities.append(prob[idx])
+                max_probabilities_index.append(index[idx])
+        selected_path_id = max_probabilities_index[max_probabilities.index(max(max_probabilities))]
+    return selected_path_id
+
+def get_input_variables(input_variables, source_path):
+    source = open(source_path, "r")
+    for line in source:
+        if re.match("(.*)klee_make_symbolic(.*)", line):
+            tokens = re.split(r'[(|)]|\"', line)
+            if('arr' in tokens[4]):
+                temp = tokens[4].split('_')
+                tokens[4] = temp[-1]
+                tokens[3] = tokens[3].split('*')[-1].replace(',','').strip()
+                input_variables.append((tokens[2], tokens[4], 1, tokens[3]))
+            else:
+                input_variables.append((tokens[2], tokens[4], 0, ''))
+            print(tokens[4])
+    source.close()
+    return
+
+def get_input_error_variables(approximable_input, source_path):
+    source = open(source_path, "r")
+    for line in source:
+        if re.match("(.*)klee_track_error(.*)", line):
+            tokens = re.split(r'[(|)]|\"|&|,', line)
+            name = tokens[-3].split('_')[0]
+            approximable_input.append(name)
+            print(name)
+    source.close()
+    return
+
+def sanitize_klee_expression(path_condition):
+    path_condition = path_condition.replace(" = ", " == ")
+    path_condition = path_condition.replace(">> 0", "")
+    path_condition = path_condition.replace(">> ", ">> (int)")
+    path_condition = path_condition.replace("<< ", "<< (int)")
+    path_condition = path_condition.replace("true", "1");
+    path_condition = path_condition.replace("false", "0");
+    return path_condition
