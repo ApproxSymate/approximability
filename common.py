@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import random
+import math
 import ctypes
 import cinpy
 from pathlib import Path
@@ -12,7 +13,6 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
     average_sensitivy = 0.0
     path_with_error_satisfied = 0
     random.seed(a=0)
-    result = []
 
     input_approximability = []
     for var in approximable_input:
@@ -20,6 +20,7 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
 
     for idx, var in enumerate(approximable_input):
         var_with_err_name = var + "_err"
+        result = []
 
         for x in range(input_error_repeat):
             input_error = random.uniform(0.0, 1.0)
@@ -29,7 +30,7 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
 
             if(len(math_calls)):
                 math_call_error_string = handle_error_in_math_calls(math_calls)
-                pc_with_error_func += math_call_error_string
+                error_added_string += math_call_error_string
 
             pc_func_string = error_added_string + ("\nint answer = " + path_condition_with_error + ";\nreturn answer;}")
 
@@ -38,19 +39,20 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
             if(path_condition_with_error == ''):
                 path_with_error_satisfied = 1
                 path_condition_with_error_true = 1
-                input_approximability[idx] += 1
             else:
                 func_with_error = cinpy.defc("with_error", ctypes.CFUNCTYPE(ctypes.c_int), pc_func_string)
                 if(func_with_error()):
                     path_with_error_satisfied = 1
-                    input_approximability[idx] += 1
                     path_condition_with_error_true = 1
 
             if(path_condition_with_error_true):
                 #get the error exp result
-                if(exp == '0'):
+                if(exp[2] == '0'):
+                    input_approximability[idx] += input_error_repeat
                     output_error = 0
+                    break
                 else:
+                    input_approximability[idx] += 1
                     exp_string = sanitize_klee_expression(exp[2])
                     temp_string = ("\nfloat answer = " + exp_string + ";\nreturn answer;}")
                     func_string = error_added_string + temp_string
@@ -59,18 +61,18 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
                     try:
                         exp_func = cinpy.defc("with_error", ctypes.CFUNCTYPE(ctypes.c_float), final_temp_string)
                         output_error = exp_func()
+                        result.append((input_error, output_error))
                     except Exception as e:
                         print("2 " + str(e))
                         print(exp[0] + ' ' + exp[1])
                         #print("Exception occured in eval (2)")
                         continue;
-                result.append((input_error, output_error))
             else:
                 continue
 
-            approximable_result = check_approximability_of_result(result)
-            average_sensitivy += approximable_result[0]
-            is_var_approximable = approximable_result[1]
+        approximable_result = check_approximability_of_result(result)
+        average_sensitivy += approximable_result[0]
+        is_var_approximable = approximable_result[1]
 
     q.put((exp[0], exp[1], is_var_approximable, average_sensitivy, path_with_error_satisfied, input_approximability))
 
@@ -130,28 +132,31 @@ def get_approximable_and_non_approximable_vars(approximable_var, non_approximabl
 
 def check_approximability_of_result(result):
     is_var_approximable = 0
-    result = sorted(result, key=lambda x: x[0])
-    list_x, list_y = zip(*result)
+    if(len(result)):
+        result = sorted(result, key=lambda x: x[0])
+        list_x, list_y = zip(*result)
 
-    # linear reqression code from https://www.geeksforgeeks.org/linear-regression-python-implementation/
-    xdata = np.array(list_x)
-    ydata = np.array(list_y)
-    n = np.size(xdata)
-    m_x, m_y = np.mean(xdata), np.mean(ydata)
-    SS_xy = np.sum(ydata * xdata - n * m_y * m_x)
-    SS_xx = np.sum(xdata * xdata - n * m_x * m_x)
-    if(abs(SS_xx) == 0.0):
-        b_1 = 0
+        # linear reqression code from https://www.geeksforgeeks.org/linear-regression-python-implementation/
+        xdata = np.array(list_x)
+        ydata = np.array(list_y)
+        n = np.size(xdata)
+        m_x, m_y = np.mean(xdata), np.mean(ydata)
+        SS_xy = np.sum(ydata * xdata - n * m_y * m_x)
+        SS_xx = np.sum(xdata * xdata - n * m_x * m_x)
+        if(abs(SS_xx) == 0.0):
+            b_1 = 0
+        else:
+            b_1 = SS_xy / SS_xx
+
+        # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
+        average_sensitivy = b_1
+        # The test value is 1.1 instead of 1 because sometimes floats are slightly greater than 1 (example 1.0000000770289357)
+        if(b_1 <= 1.1):
+            is_var_approximable = 1
+
+        return (average_sensitivy, is_var_approximable)
     else:
-        b_1 = SS_xy / SS_xx
-
-    # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
-    average_sensitivy = b_1
-    # The test value is 1.1 instead of 1 because sometimes floats are slightly greater than 1 (example 1.0000000770289357)
-    if(b_1 <= 1.1):
-        is_var_approximable = 1
-
-    return (average_sensitivy, is_var_approximable)
+        return (0.0, is_var_approximable)
 
 def handle_error_in_math_calls(math_calls):
     return_string = ""
