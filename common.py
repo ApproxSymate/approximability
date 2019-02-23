@@ -102,18 +102,24 @@ def print_approximability_output(approximable_input, non_approximable_input, app
     return
 
 def get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path):
+    approx_var = set()
+    non_approx_var = set()
     for var in approximable_var:
         name_to_append = get_var_name_from_source(var[1], source_path)
         if(name_to_append != ''):
-            approximable_output_strings.append(name_to_append)
+            if(name_to_append not in approx_var):
+                approximable_output_strings.append(name_to_append)
+                approx_var.add(name_to_append)
     for var in non_approximable_var:
+        name_to_append = get_var_name_from_source(var[1], source_path)
         if(var[2]):
-            non_approximable_output_strings.append(get_var_name_from_source(var[1], source_path))
+            if(name_to_append not in non_approx_var):
+                non_approximable_output_strings.append(name_to_append)
+                non_approx_var.add(name_to_append)
         else:
-            non_approximable_output_strings.append(get_var_name_from_source(var[1], source_path) + " (Error path not satisifed)")
-    #Remove duplicates
-    list(OrderedDict.fromkeys(approximable_output_strings))
-    list(OrderedDict.fromkeys(non_approximable_output_strings))
+            if(name_to_append not in non_approx_var):
+                non_approximable_output_strings.append(name_to_append + " (Error path not satisifed)")
+                non_approx_var.add(name_to_append)
     return
 
 def get_approximable_and_non_approximable_vars(approximable_var, non_approximable_var, results, approximable_input_size):
