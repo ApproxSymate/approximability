@@ -276,9 +276,9 @@ def execute_input(arrays, array_inputs, regular_inputs):
     for array in arrays:
         exec("%s = []" % (array), None, globals())
     for array_input in array_inputs:
-        exec("%s.insert(%d, %d)" % (array_input[0], array_input[1], array_input[2]), None, globals())
+        exec("%s.insert(%d, %f)" % (array_input[0], array_input[1], array_input[2]), None, globals())
     for regular_input in regular_inputs:
-        exec("%s = %d" % (regular_input[0], regular_input[1]), None, globals())
+        exec("%s = %f" % (regular_input[0], regular_input[1]), None, globals())
 
 def read_input(selected_path_id, input_path, largest_index, arrays, array_inputs, regular_inputs):
     if(not input_path == ''):
