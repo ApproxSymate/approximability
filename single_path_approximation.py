@@ -1,15 +1,9 @@
-import subprocess
-import re
 import os
-import numpy as np
-import path
-import sys
 import ctypes
 import cinpy
 
 from multiprocessing import Process, Queue
 
-from common import get_var_name_from_source
 from common import get_input_variables
 from common import get_input_error_variables
 from common import sanitize_klee_expression
@@ -20,6 +14,8 @@ from common import get_math_call_string
 from common import get_approximable_input_func_error_string
 from common import read_result_expressions
 from common import check_approximability_of_expressions_var
+from common import get_approximable_and_non_approximable_vars
+from common import print_approximability_output
 
 def approximate_for_single_path(result_path, source_path, input_path, ktest_tool_path):
     print("Source: " + source_path)
@@ -30,10 +26,6 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     print("input error repeat = %d\n" % input_error_repeat)
 
     selected_path_id = get_path_for_approximation(result_path);
-
-    #selected_path_id = '2'
-    #selected_path_id = '23' - floodfill
-    #selected_path_id = '11' - raytracer
     print("Selected path #:" + selected_path_id + "\n")
 
     # Get the input variables and their types and mark those for which error is tracked
@@ -89,13 +81,6 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     else:
         print("\nInput values satisfies path condition without error...")
 
-    approximable_var = []
-    non_approximable_var = []
-    # Maintain a measure of the approximability of the input
-    input_approximability_count = []
-    for var in approximable_input:
-        input_approximability_count.append(0)
-
     approximable_input_func_error_string = get_approximable_input_func_error_string(approximable_input)
     pc_with_error_func += approximable_input_func_error_string
 
@@ -104,13 +89,27 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     #check the approximability of each expression's variable
     q = Queue()
+    results = []
     for exp in expressions:
         p = Process(target = check_approximability_of_expressions_var, args=(q, exp, approximable_input, pc_with_error_func, path_condition_with_error, input_error_repeat, math_calls))
         p.start()
-        #result = q.get()
-        #print(result)
+        results.append(q.get())
         p.join()
 
+    #organize results and calculate output
+    approximable_var = []
+    non_approximable_var = []
+    # Maintain a measure of the approximability of the input
+    input_approximability_count = get_approximable_and_non_approximable_vars(approximable_var, non_approximable_var, results, len(approximable_input))
+
+    # Get the non-approximable input
+    non_approximable_input = list(set([x[1] for x in input_variables]) - set(approximable_input))
+
+    #Sort by average sensitivity
+    approximable_var.sort(key=lambda tup: tup[0], reverse=True)
+    non_approximable_var.sort(key=lambda tup: tup[0], reverse=True)
+
+    print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, len(expressions), input_error_repeat)
 
 def get_path_for_approximation(result_path):
     # Find the path longest path with the highest probabilty

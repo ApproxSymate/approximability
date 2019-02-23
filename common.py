@@ -1,9 +1,11 @@
 import re
-import math
+import numpy as np
 import random
 import ctypes
 import cinpy
 from pathlib import Path
+
+from collections import OrderedDict
 
 def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with_error_func, path_condition_with_error, input_error_repeat, math_calls):
     is_var_approximable = 0
@@ -23,23 +25,22 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
             input_error = random.uniform(0.0, 1.0)
             exec("%s = %f" % (var_with_err_name, input_error), None, globals())
             error_added_string = var_with_err_name + " = " + str(input_error) + ";"
-            pc_with_error_func += error_added_string
+            error_added_string = pc_with_error_func + error_added_string
 
             if(len(math_calls)):
                 math_call_error_string = handle_error_in_math_calls(math_calls)
                 pc_with_error_func += math_call_error_string
 
-            func_string = pc_with_error_func
-            pc_with_error_func += ("\nint answer = " + path_condition_with_error + ";\nreturn answer;}")
+            pc_func_string = error_added_string + ("\nint answer = " + path_condition_with_error + ";\nreturn answer;}")
 
             #check if path condition with error is satisfied
             path_condition_with_error_true = 0
             if(path_condition_with_error == ''):
                 path_with_error_satisfied = 1
                 path_condition_with_error_true = 1
+                input_approximability[idx] += 1
             else:
-                print(pc_with_error_func)
-                func_with_error = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_int), pc_with_error_func)
+                func_with_error = cinpy.defc("with_error", ctypes.CFUNCTYPE(ctypes.c_int), pc_func_string)
                 if(func_with_error()):
                     path_with_error_satisfied = 1
                     input_approximability[idx] += 1
@@ -52,11 +53,11 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
                 else:
                     exp_string = sanitize_klee_expression(exp[2])
                     temp_string = ("\nfloat answer = " + exp_string + ";\nreturn answer;}")
-                    func_string += temp_string
+                    func_string = error_added_string + temp_string
                     #change the return type to float (instead of int)
                     final_temp_string = "float " + func_string.split(' ', 1)[1]
                     try:
-                        exp_func = cinpy.defc("without_error", ctypes.CFUNCTYPE(ctypes.c_float), final_temp_string)
+                        exp_func = cinpy.defc("with_error", ctypes.CFUNCTYPE(ctypes.c_float), final_temp_string)
                         output_error = exp_func()
                     except Exception as e:
                         print("2 " + str(e))
@@ -67,6 +68,90 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
             else:
                 continue
 
+            approximable_result = check_approximability_of_result(result)
+            average_sensitivy += approximable_result[0]
+            is_var_approximable = approximable_result[1]
+
+    q.put((exp[0], exp[1], is_var_approximable, average_sensitivy, path_with_error_satisfied, input_approximability))
+
+def print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, expression_count, input_error_repeat):
+    approximable_output_strings = []
+    non_approximable_output_strings = []
+    get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path)
+
+    # Print out the approximable and non-approximable variables
+    print("\nApproximable variables (in increasing order of sensitivity)\n================================")
+    for var in approximable_input:
+        print(var.strip(",") + " (input)")
+    for var in approximable_output_strings:
+        print(var)
+
+    print("\nNon-approximable variables (in increasing order of sensitivity)\n================================")
+    for var in non_approximable_input:
+        print(var.strip(",") + " (input)")
+    for var in non_approximable_output_strings:
+        print(var)
+
+    # Print the approximability of inputs
+    print("\nApproximability of input variables\n================================")
+    for idx, var in enumerate(approximable_input):
+        print(var + ' : %f%%' % ((input_approximability_count[idx] / (expression_count * input_error_repeat)) * 100))
+
+    return
+
+def get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path):
+    for var in approximable_var:
+        name_to_append = get_var_name_from_source(var[1], source_path)
+        if(name_to_append != ''):
+            approximable_output_strings.append(name_to_append)
+    for var in non_approximable_var:
+        if(var[2]):
+            non_approximable_output_strings.append(get_var_name_from_source(var[1], source_path))
+        else:
+            non_approximable_output_strings.append(get_var_name_from_source(var[1], source_path) + " (Error path not satisifed)")
+    #Remove duplicates
+    list(OrderedDict.fromkeys(approximable_output_strings))
+    list(OrderedDict.fromkeys(non_approximable_output_strings))
+    return
+
+def get_approximable_and_non_approximable_vars(approximable_var, non_approximable_var, results, approximable_input_size):
+    input_approximability_count = []
+    for x in range(approximable_input_size):
+        input_approximability_count.append(0)
+
+    for result in results:
+        if(result[2]):
+            approximable_var.append((result[3] / approximable_input_size, result[0], result[4]))
+        else:
+            non_approximable_var.append((result[3] / approximable_input_size, result[0], result[4]))
+
+        input_approximability_count = [x + y for x, y in zip(input_approximability_count, result[5])]
+    return input_approximability_count
+
+def check_approximability_of_result(result):
+    is_var_approximable = 0
+    result = sorted(result, key=lambda x: x[0])
+    list_x, list_y = zip(*result)
+
+    # linear reqression code from https://www.geeksforgeeks.org/linear-regression-python-implementation/
+    xdata = np.array(list_x)
+    ydata = np.array(list_y)
+    n = np.size(xdata)
+    m_x, m_y = np.mean(xdata), np.mean(ydata)
+    SS_xy = np.sum(ydata * xdata - n * m_y * m_x)
+    SS_xx = np.sum(xdata * xdata - n * m_x * m_x)
+    if(abs(SS_xx) == 0.0):
+        b_1 = 0
+    else:
+        b_1 = SS_xy / SS_xx
+
+    # If gradient > 50% mark as non-approximable, else continue for other variables in the expression
+    average_sensitivy = b_1
+    # The test value is 1.1 instead of 1 because sometimes floats are slightly greater than 1 (example 1.0000000770289357)
+    if(b_1 <= 1.1):
+        is_var_approximable = 1
+
+    return (average_sensitivy, is_var_approximable)
 
 def handle_error_in_math_calls(math_calls):
     return_string = ""
@@ -165,15 +250,15 @@ def get_func_string_for_inputs(input_variables, arrays, largest_index, array_inp
                 declared_size = input[3]
                 break
         if(int(declared_size) > int(largest_index[array])):
-            input_string += "int " + array + "[" + str(declared_size) + "];"
+            input_string += "float " + array + "[" + str(declared_size) + "];"
         else:
-            input_string += "int " + array + "[" + str(largest_index[array]) + "];"
+            input_string += "float " + array + "[" + str(largest_index[array]) + "];"
     #array inputs
     for array_input in array_inputs:
         input_string += str(array_input[0]) + "[" + str(array_input[1]) + "] = " + str(array_input[2]) + ";"
     #regular inputs
     for regular_input in regular_inputs:
-        input_string += "int " + str(regular_input[0]) + " = " + str(regular_input[1]) + ";"
+        input_string += "float " + str(regular_input[0]) + " = " + str(regular_input[1]) + ";"
     return input_string
 
 def execute_input(arrays, array_inputs, regular_inputs):
