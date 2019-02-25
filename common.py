@@ -389,7 +389,7 @@ def get_input_error_variables(approximable_input, source_path):
     for line in source:
         if re.match("(.*)klee_track_error(.*)", line):
             tokens = re.split(r'[(|)]|\"|&|,', line)
-            name = tokens[-3].split('_')[0]
+            name = tokens[-3].rsplit('_', 1)[0]
             approximable_input.append(name)
             print(name)
     source.close()
