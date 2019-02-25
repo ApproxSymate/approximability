@@ -72,7 +72,8 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
 
         approximable_result = check_approximability_of_result(result)
         average_sensitivy += approximable_result[0]
-        is_var_approximable = approximable_result[1]
+        if(approximable_result[1]):
+            is_var_approximable = 1
 
     q.put((exp[0], exp[1], is_var_approximable, average_sensitivy, path_with_error_satisfied, input_approximability))
 
