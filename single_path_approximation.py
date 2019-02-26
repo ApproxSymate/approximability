@@ -22,7 +22,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     print("Output: " + result_path)
 
     #exec("scaling = 1.0", None, globals())
-    input_error_repeat = 3
+    input_error_repeat = 10
     print("input error repeat = %d\n" % input_error_repeat)
 
     selected_path_id = get_path_for_approximation(result_path);
