@@ -1,13 +1,13 @@
 import sys
 
 def print_usage():
-    print("Usage: python find_approx.py [--single-path-approximation|--all-path-approximation|--approximate-path-by-probability=<N>|--approximate-path-by-pathcount=<N>] <config_file>")   
+    print("Usage: python find_approx.py [--single-path-approximation|--all-path-approximation|--approximate-path-by-probability=<N>|--approximate-path-by-pathcount=<N>] [--print-line-numbers] <config_file>")
 
 if len(sys.argv) < 3:
     print_usage()
     quit()
 else:
-    config_path = sys.argv[2]
+    config_path = sys.argv[-1]
     
 #Initialize
 from single_path_approximation import approximate_for_single_path
@@ -23,8 +23,12 @@ with open(config_path, 'r') as infile:
     ktest_tool_path = infile.readline().split()[2].strip()
     input_path = infile.readline().split('=')[1].strip()
 
+    print_lines = 0
+if(sys.argv[2] == "--print-line-numbers"):
+    print_lines = 1
+
 if(sys.argv[1] == "--single-path-approximation"):
-    approximate_for_single_path(result_path, source_path, input_path, ktest_tool_path)
+    approximate_for_single_path(result_path, source_path, input_path, ktest_tool_path, print_lines)
 elif (sys.argv[1] == "--all-path-approximation"):
     approximate_for_all_paths(result_path, source_path, input_path, ktest_tool_path)
 elif (sys.argv[1] == "--all-path-approximation-summary"):

@@ -17,12 +17,12 @@ from common import check_approximability_of_expressions_var
 from common import get_approximable_and_non_approximable_vars
 from common import print_approximability_output
 
-def approximate_for_single_path(result_path, source_path, input_path, ktest_tool_path):
+def approximate_for_single_path(result_path, source_path, input_path, ktest_tool_path, print_lines):
     print("Source: " + source_path)
     print("Output: " + result_path)
 
     #exec("scaling = 1.0", None, globals())
-    input_error_repeat = 10
+    input_error_repeat = 3
     print("input error repeat = %d\n" % input_error_repeat)
 
     selected_path_id = get_path_for_approximation(result_path);
@@ -109,7 +109,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     approximable_var.sort(key=lambda tup: tup[0], reverse=True)
     non_approximable_var.sort(key=lambda tup: tup[0], reverse=True)
 
-    print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, len(expressions), input_error_repeat)
+    print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, len(expressions), input_error_repeat, print_lines)
 
 def get_path_for_approximation(result_path):
     # Find the path longest path with the highest probabilty

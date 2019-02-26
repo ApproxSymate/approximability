@@ -77,10 +77,10 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
 
     q.put((exp[0], exp[1], is_var_approximable, average_sensitivy, path_with_error_satisfied, input_approximability))
 
-def print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, expression_count, input_error_repeat):
+def print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, expression_count, input_error_repeat, print_lines):
     approximable_output_strings = []
     non_approximable_output_strings = []
-    get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path)
+    get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path, print_lines)
 
     # Print out the approximable and non-approximable variables
     print("\nApproximable variables (in increasing order of sensitivity)\n================================")
@@ -102,17 +102,18 @@ def print_approximability_output(approximable_input, non_approximable_input, app
 
     return
 
-def get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path):
+def get_var_names(approximable_output_strings, non_approximable_output_strings, approximable_var, non_approximable_var, source_path, print_lines):
     approx_var = set()
     non_approx_var = set()
     for var in approximable_var:
-        name_to_append = get_var_name_from_source(var[1], source_path)
+        name_to_append = get_var_name_from_source(var[1], source_path, print_lines)
         if(name_to_append != ''):
             if(name_to_append not in approx_var):
                 approximable_output_strings.append(name_to_append)
                 approx_var.add(name_to_append)
+
     for var in non_approximable_var:
-        name_to_append = get_var_name_from_source(var[1], source_path)
+        name_to_append = get_var_name_from_source(var[1], source_path, print_lines)
         if(var[2]):
             if(name_to_append not in non_approx_var):
                 non_approximable_output_strings.append(name_to_append)
@@ -317,7 +318,7 @@ def read_input(selected_path_id, input_path, largest_index, arrays, array_inputs
     input_file.close()
     return
 
-def get_var_name_from_source(var_line, source_path):
+def get_var_name_from_source(var_line, source_path, print_lines):
     tokens = var_line.split(' ')
     if(tokens[0] == "0"):
         return tokens[1].strip(',') + " " + tokens[2]
@@ -367,7 +368,10 @@ def get_var_name_from_source(var_line, source_path):
                     var_name = var_name[0].strip('\n').strip(';')
     #print(var_name + " " + var_line)
 
-    return var_name + " " + tokens[1]
+    if(print_lines):
+        return tokens[0] + " " + var_name + " " + tokens[1]
+    else:
+        return var_name + " " + tokens[1]
 
 def get_input_variables(input_variables, source_path):
     source = open(source_path, "r")
