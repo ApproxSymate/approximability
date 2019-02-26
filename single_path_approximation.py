@@ -90,9 +90,13 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     #check the approximability of each expression's variable
     q = Queue()
     results = []
-    for exp in expressions:
-        p = Process(target = check_approximability_of_expressions_var, args=(q, exp, approximable_input, pc_with_error_func, path_condition_with_error, input_error_repeat, math_calls))
+    processes = []
+    for idx, exp in enumerate(expressions):
+        p = Process(target = check_approximability_of_expressions_var, args=(q, idx, exp, approximable_input, pc_with_error_func, path_condition_with_error, input_error_repeat, math_calls))
         p.start()
+        processes.append(p)
+
+    for p in processes:
         results.append(q.get())
         p.join()
 

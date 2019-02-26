@@ -8,7 +8,7 @@ from pathlib import Path
 
 from collections import OrderedDict
 
-def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with_error_func, path_condition_with_error, input_error_repeat, math_calls):
+def check_approximability_of_expressions_var(q, process_id, exp, approximable_input, pc_with_error_func, path_condition_with_error, input_error_repeat, math_calls):
     is_var_approximable = 0
     average_sensitivy = 0.0
     path_with_error_satisfied = 0
@@ -76,6 +76,7 @@ def check_approximability_of_expressions_var(q, exp, approximable_input, pc_with
             is_var_approximable = 1
 
     q.put((exp[0], exp[1], is_var_approximable, average_sensitivy, path_with_error_satisfied, input_approximability))
+    return
 
 def print_approximability_output(approximable_input, non_approximable_input, approximable_var, non_approximable_var, input_approximability_count, source_path, expression_count, input_error_repeat, print_lines):
     approximable_output_strings = []
