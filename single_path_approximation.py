@@ -98,7 +98,13 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     for p in processes:
         results.append(q.get())
-        p.join()
+        p.join(60)
+
+        if p.is_alive():
+            print("Killing process")
+            # Terminate
+            p.terminate()
+            p.join()
 
     #organize results and calculate output
     approximable_var = []
