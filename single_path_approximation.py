@@ -96,9 +96,10 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
         p.start()
         processes.append(p)
 
+    timeout = input_error_repeat * len(approximable_input) * 30
     for p in processes:
         results.append(q.get())
-        p.join(60)
+        p.join(timeout)
 
         if p.is_alive():
             print("Killing process")
