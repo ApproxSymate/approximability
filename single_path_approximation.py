@@ -49,7 +49,7 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
     execute_input(arrays, array_inputs, regular_inputs)
 
     # Get the path condition with error for the selected path
-    source = open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_precision_error", "r")
+    source = open(result_path + "/" + "test" + "{:0>6}".format(str(selected_path_id)) + ".kquery_error", "r")
     path_condition_with_error = source.readline().rstrip("\n\r")
     path_condition_without_error = source.readline().rstrip("\n\r")
     source.close()
@@ -86,6 +86,12 @@ def approximate_for_single_path(result_path, source_path, input_path, ktest_tool
 
     expressions = []
     read_result_expressions(result_path, selected_path_id, expressions)
+    #remove these expresions only for lbm, otherwise the program will hang
+    #expressions.pop(4)
+    #expressions.pop(4)
+    #expressions.pop(30)
+    #expressions.pop(30)
+    #expressions.pop(31)
 
     #check the approximability of each expression's variable
     q = Queue()
